@@ -1,0 +1,878 @@
+// app global css in SCSS form
+// .backgroundLayout {
+//   background-image: url("../assets/images/abstract-background.jpg");
+//   background-position: center;
+//   background-repeat: no-repeat;
+//   background-size: cover;
+//   height: 100%;
+// }
+
+// html,
+// body {
+//   height: 100%; /* Ensure the body and html cover full height */
+//   background-image: url("../assets/images/abstract-background.jpg");
+//   background-position: center;
+// }
+
+html,
+body {
+  height: 100%;
+  background: none;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  overflow: auto;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  // background-image: url("../assets/images/abstract-background.jpg");
+  // background-color: white;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  filter: brightness(0.85);
+  z-index: -1;
+}
+
+// .custom-card {
+//   width: 90%;
+//   margin: 80px auto;
+//   padding: 0;
+// }
+
+.activeLink {
+  color: $yellow-8 !important;
+  background-color: $blue-10;
+  transition: 0.5s ease;
+}
+
+.activeLinkSecretary {
+  background-color: $amber-8;
+}
+
+.specific-button.activeLink {
+  color: $yellow-8 !important;
+  transition: color 0.5s ease, background-color 0.3s ease;
+}
+
+.specific-button:hover:not(.activeLink) {
+  background-color: $yellow-8 !important;
+  color: inherit;
+}
+
+.essential-links {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.custom-span {
+  font-size: 17px;
+}
+
+.custom-span:hover {
+  color: $blue-10 !important;
+  background-color: $yellow-8;
+}
+
+.virtual-scroll {
+  overflow: auto;
+}
+
+.virtual-scroll:hover {
+  overflow: auto;
+}
+
+.virtual-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+
+.virtual-scroll::-webkit-scrollbar-thumb {
+  background-color: $blue-10;
+  border-radius: 6px;
+}
+
+.virtual-scroll::-webkit-scrollbar-track {
+  background-color: $blue-2;
+  border-radius: 6px;
+}
+
+.virtual-scroll-dialog {
+  overflow: auto;
+}
+
+.virtual-scroll-dialog:hover {
+  overflow: auto;
+}
+
+.virtual-scroll-dialog::-webkit-scrollbar {
+  width: 10px;
+}
+
+.virtual-scroll-dialog::-webkit-scrollbar-thumb {
+  background-color: $blue-10;
+  border-radius: 6px;
+}
+
+.virtual-scroll-dialog::-webkit-scrollbar-track {
+  background-color: $blue-2;
+  border-radius: 6px;
+}
+
+.serviceTitle {
+  margin-top: 20px;
+  text-align: center;
+  font-weight: bold;
+  color: $blue-10;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+}
+
+.fixed-card-section {
+  height: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.footer-btn {
+  box-shadow: 0 0px 3px $grey-10;
+  border-radius: 5px;
+  position: relative;
+}
+
+.transparent-card {
+  // background-color: #f7fbfd;
+  // background-color: $grey-2;
+  box-shadow: 0 0px 12px $grey-5;
+  // box-shadow: 0 0px 2px black;
+  border-radius: 10px;
+  justify-content: center;
+}
+
+.transparent-card-doctors {
+  // background-color: #f7fbfd;
+  // background-color: $grey-2;
+  border-radius: 10px;
+  // box-shadow: 0 0px 2px black;
+  overflow: auto;
+  box-shadow: 0 0px 12px $grey-5;
+}
+
+.transparent-card-image {
+  // background-color: #f7fbfd;
+  background-color: $grey-2;
+  border-radius: 20px;
+  justify-content: center;
+  box-shadow: 0 0px 5px $blue-2;
+}
+
+.transparent-bg {
+  background-image: url("../assets/images/abstract-background.jpg");
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  justify-content: center;
+  filter: brightness(0.85);
+}
+
+.child-div {
+  width: 100%;
+  height: 100%;
+  text-align: center;
+}
+
+.xs-text {
+  font-size: 20px;
+}
+
+.sm-text {
+  font-size: 23px;
+}
+
+.md-text,
+.lg-text {
+  font-size: 25px;
+}
+
+.xl-text {
+  font-size: 27px;
+}
+
+.xs-textTitle {
+  font-size: 22px;
+}
+
+.sm-textTitle {
+  font-size: 25px;
+}
+
+.md-textTitle,
+.lg-textTitle {
+  font-size: 28px;
+}
+
+.xl-textTitle {
+  font-size: 30px;
+}
+
+.container {
+  width: 90%;
+  margin: 0 auto;
+}
+
+.hoverable-item:hover {
+  background-color: $blue-2;
+  transition: 1s ease;
+}
+
+.sm-width {
+  width: 350px;
+}
+
+.md-width {
+  width: 450px;
+}
+
+.lg-width {
+  width: 800px;
+}
+
+.xl-width {
+  width: 1000px;
+}
+
+.xs-heightPic {
+  height: 200px;
+}
+
+.sm-heightPic {
+  height: 260px;
+}
+
+.md-heightPic {
+  height: 300px;
+}
+
+.lg-heightPic {
+  height: 320px;
+}
+
+.xl-heightPic {
+  height: 350px;
+}
+
+.q-menu {
+  height: auto !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}
+
+.q-menu .q-item:hover {
+  background-color: $blue-3;
+  transition: background-color 2s ease;
+  border-radius: 10px;
+}
+
+.q-menu {
+  overflow: auto;
+}
+
+.q-menu:hover {
+  overflow: auto;
+}
+
+.q-menu::-webkit-scrollbar {
+  width: 10px;
+}
+
+.q-menu::-webkit-scrollbar {
+  width: 10px;
+}
+
+.q-menu::-webkit-scrollbar-thumb {
+  background-color: $blue-10;
+  border-radius: 10px;
+}
+
+.q-menu::-webkit-scrollbar-track {
+  background-color: $blue-2;
+  border-radius: 10px;
+}
+
+.checkbox-hover:hover {
+  background-color: rgba(155, 18, 18, 0.1);
+  border-radius: 4px;
+}
+
+.disable-pointer-events {
+  pointer-events: none;
+}
+
+.avatarBorder {
+  // box-shadow: 0 0px 5px $blue-10;
+  box-shadow: 0 0px 2px black;
+}
+
+.lineDoc {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.lineDoc .line {
+  flex-grow: 1;
+  height: 1px;
+  background-color: black;
+  margin: 0 10px;
+}
+
+.text-bold {
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.fixed-height-image {
+  width: 100%;
+  object-fit: cover;
+}
+
+//LOADER
+.loader-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.9);
+  z-index: 9999;
+}
+
+.loader {
+  font-weight: bold;
+  font-family: monospace;
+  font-size: 40px;
+  background: linear-gradient(90deg, $blue-10, $yellow-8);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  background-size: 200% auto;
+  animation: moveGradient 3s linear infinite;
+}
+
+@keyframes moveGradient {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
+}
+//LOADER
+
+.no-arrow-dropdown .q-btn-dropdown__arrow {
+  display: none;
+}
+
+.doctorName {
+  font-weight: bold;
+  color: black;
+}
+
+.img-wrapper {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.zoomable-img .q-img__image {
+  transition: transform 0.4s ease;
+}
+
+.zoomable-img:hover .q-img__image {
+  transform: scale(1.15);
+}
+
+.doctorName {
+  font-weight: bold;
+  color: white;
+}
+
+.q-carousel__arrow {
+  color: $blue-10;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.q-carousel__arrow:hover {
+  background-color: $blue-10;
+  color: $yellow-8;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+// .q-carousel__arrow:hover {
+//   background-color: $yellow-8;
+//   color: $blue-10;
+// }
+
+.inputDiv {
+  box-shadow: 0 0px 12px $grey-5;
+}
+
+.custom-btn {
+  min-width: 10.5px;
+  min-height: 10.5px;
+}
+
+.custom-scroll {
+  // box-sizing: border-box;
+  box-shadow: 0 0px 12px $grey-5;
+}
+
+.custom-scroll .q-table__middle {
+  overflow: auto !important;
+  max-height: 700px;
+}
+
+.custom-scroll .q-table__middle:hover {
+  overflow: auto !important;
+}
+
+.custom-scroll .q-table__middle::-webkit-scrollbar {
+  width: 10px;
+}
+
+.custom-scroll .q-table__middle::-webkit-scrollbar-thumb {
+  background-color: $blue-10;
+  border-radius: 6px;
+}
+
+.custom-scroll .q-table__middle::-webkit-scrollbar-track {
+  background-color: $blue-2;
+  border-radius: 6px;
+}
+
+.sticky-thead {
+  position: sticky;
+  top: 0;
+  background-color: #eeeeee;
+  z-index: 1;
+}
+
+.hover-row {
+  transition: height 0.3s ease, background-color 0.3s ease;
+}
+
+.hover-row:hover {
+  height: 65px;
+  background-color: $blue-2;
+}
+
+.floating-npc-logo {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 1000;
+}
+
+.floating-npc-logo img {
+  transition: transform 0.3s ease;
+}
+
+.floating-npc-logo img:hover {
+  transform: scale(1.3);
+}
+
+.image-npc-logo {
+  z-index: 1000;
+}
+
+.image-npc-logo {
+  transition: transform 0.3s ease;
+}
+
+.image-npc-logo:hover {
+  transform: scale(1.3);
+}
+
+// .toggle-container {
+//   display: flex;
+//   align-items: center;
+//   justify-content: flex-end;
+//   position: relative;
+//   width: 160px;
+//   height: 50px;
+//   background-color: $negative;
+//   border-radius: 25px;
+//   padding: 0 20px;
+//   font-family: Arial, sans-serif;
+//   font-size: 18px;
+//   font-weight: bold;
+//   color: white;
+//   user-select: none;
+//   cursor: pointer;
+//   transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+// }
+
+// .toggle-container.active {
+//   background-color: $positive;
+//   justify-content: flex-start;
+// }
+
+// .toggle-text {
+//   font-size: 18px;
+//   font-weight: bold;
+//   color: white;
+// }
+
+// /* Toggle ball */
+// .toggle-ball {
+//   position: absolute;
+//   width: 40px;
+//   height: 40px;
+//   border-radius: 50%;
+//   background-color: white;
+//   transition: transform 0.4s ease-in-out, background-color 0.4s ease-in-out;
+//   left: 5px;
+//   box-shadow: 0 0px 10px black;
+//   cursor: grab;
+// }
+
+// .toggle-ball.active-ball {
+//   background-color: white;
+//   transform: translateX(110px);
+//   box-shadow: 0 0px 10px black;
+// }
+
+.centered-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.toggle-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  position: relative;
+  width: 100px;
+  height: 30px;
+  background-color: $negative;
+  border-radius: 15px;
+  padding: 0 5px;
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+  user-select: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+}
+
+.toggle-container.active {
+  background-color: $positive;
+  justify-content: flex-start;
+}
+
+.toggle-text {
+  font-size: 15px;
+  font-weight: bold;
+  color: white;
+}
+
+/* Toggle ball */
+.toggle-ball {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: white;
+  transition: transform 0.4s ease-in-out, background-color 0.4s ease-in-out;
+  left: 5px;
+  box-shadow: 0 0px 6px black;
+  cursor: grab;
+}
+
+.toggle-ball.active-ball {
+  background-color: white;
+  transform: translateX(70px);
+  box-shadow: 0 0px 6px black;
+}
+
+.toggle-wrapper {
+  display: flex;
+  justify-content: center; /* Centers the toggle-container */
+  align-items: center; /* Centers it vertically if needed */
+  width: 100%; /* Ensures it takes full width of its parent */
+}
+
+.q-dialog__title {
+  font-weight: bold;
+  background-color: $blue-10;
+  color: white;
+  margin-bottom: 10px;
+}
+
+.q-dialog__message {
+  font-weight: bold;
+}
+
+.buttonGroup {
+  outline: 1px solid $blue-10;
+}
+
+.buttonGroup:hover {
+  background-color: $amber-8;
+  transition: background-color 3s ease;
+  border-radius: 10px;
+}
+
+.mainPageContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-page {
+  background: linear-gradient(
+      to top,
+      rgba(21, 101, 192, 0.4),
+      rgba(245, 245, 245, 0.2)
+    ),
+    url("../assets/images/MainBg.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.login-card {
+  border-radius: 15px;
+  box-shadow: 0 0px 8px black;
+}
+
+.xs-widthLogin {
+  width: 250px;
+}
+
+.sm-widthLogin {
+  width: 350px;
+}
+
+.md-widthLogin {
+  width: 400px;
+}
+
+.lg-widthLogin {
+  width: 450px;
+}
+
+.drawerStyle {
+  box-shadow: 0 0px 5px $grey-6;
+}
+
+.responsive-logo {
+  max-height: 10vh; /* 10% of viewport height */
+  height: auto;
+  width: auto;
+}
+
+.xs-heightLogo {
+  max-height: 70px;
+}
+
+.sm-heightLogo {
+  max-height: 80px;
+}
+
+.md-heightLogo {
+  max-height: 90px;
+}
+
+.lg-heightLogo {
+  max-height: 100px;
+}
+
+.xl-heightLogo {
+  max-height: 120px;
+}
+
+.text-wrap {
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.drawerMenu {
+  flex: 1;
+  overflow: auto;
+}
+
+.drawerMenu:hover {
+  overflow: auto;
+}
+
+.drawerMenu::-webkit-scrollbar {
+  width: 8px;
+}
+
+.drawerMenu::-webkit-scrollbar-thumb {
+  background-color: $primary;
+  border-radius: 6px;
+}
+
+.drawerMenu::-webkit-scrollbar-track {
+  background-color: $blue-2;
+  border-radius: 6px;
+}
+
+.drawerBtn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  color: $blue-10;
+}
+
+.headerColor {
+  color: #14376a;
+  font-weight: 900;
+}
+
+.SecHeaderColor {
+  color: #0f4d91;
+}
+
+// .quarter-grey-card {
+//   background: linear-gradient(to bottom, $grey-4 37%, white 37%);
+// }
+
+.backdrop-blur {
+  backdrop-filter: blur(5px);
+  background-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Add this CSS to your dialog component */
+.fullscreen-dialog {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999 !important;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* For Quasar dialogs, you might need to override these classes */
+.q-dialog__inner {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+}
+
+.backdrop-blur {
+  position: fixed !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  top: 0 !important;
+  left: 0 !important;
+}
+
+.xs-textDoctor {
+  font-size: 18px;
+}
+
+.sm-textDoctor {
+  font-size: 20px;
+}
+
+.md-textDoctor,
+.lg-textDoctor {
+  font-size: 23px;
+}
+
+.xl-textDoctor {
+  font-size: 25px;
+}
+
+.xs-textDoctorDialog {
+  font-size: 26px;
+}
+
+.sm-textDoctorDialog {
+  font-size: 28px;
+}
+
+.xs-textDoctor {
+  font-size: 18px;
+}
+
+.sm-textDoctor {
+  font-size: 20px;
+}
+
+.md-textDoctor,
+.lg-textDoctor {
+  font-size: 23px;
+}
+
+.xl-textDoctor {
+  font-size: 25px;
+}
+
+.xs-textDoctorDialog {
+  font-size: 26px;
+}
+
+.sm-textDoctorDialog {
+  font-size: 28px;
+}
+
+.xs-textSpecialtyDialog {
+  font-size: 19px;
+}
+
+.sm-textSpecialtyDialog {
+  font-size: 23px;
+}
+
+.blue-outline .q-field__control {
+  border: 1px solid $blue-10 !important;
+  border-radius: 4px;
+  box-shadow: none !important;
+}
+
+.blue-outline .q-field__control:before {
+  border: none !important;
+}

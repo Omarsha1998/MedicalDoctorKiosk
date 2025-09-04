@@ -1,0 +1,15 @@
+export default {
+  service: [],
+  wellness: [],
+  doctors: [],
+  specialization: [],
+  hmo: [],
+  selectedSpecialty: null,
+  departments: [],
+  hmoImage: [],
+  secretaryDoctors: [],
+  pollingInterval: null,
+  doctorsIn: null,
+  doctorCounts: [],
+  secretaryWithDoctors: [],
+};

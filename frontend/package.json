@@ -1,0 +1,40 @@
+{
+  "name": "patient-kiosk",
+  "version": "0.0.1",
+  "description": "Patient Kiosk",
+  "productName": "Patient Kiosk",
+  "author": "Omar <shaidomarsha@gmail.com>",
+  "private": true,
+  "scripts": {
+    "format": "prettier --write \"**/*.{js,vue,scss,html,md,json}\" --ignore-path .gitignore",
+    "test": "echo \"No test specified\" && exit 0",
+    "dev": "quasar dev",
+    "build": "quasar build"
+  },
+  "dependencies": {
+    "@ionic/vue": "^8.4.3",
+    "@ionic/vue-router": "^8.4.3",
+    "@quasar/extras": "^1.16.4",
+    "@tensorflow-models/body-pix": "^2.2.1",
+    "@tensorflow/tfjs": "^4.21.0",
+    "axios": "^1.2.1",
+    "mitt": "^3.0.1",
+    "quasar": "^2.8.0",
+    "sass": "^1.79.2",
+    "socket.io-client": "^4.8.1",
+    "vue": "^3.2.29",
+    "vue-router": "^4.0.12",
+    "vuex": "^4.0.1"
+  },
+  "devDependencies": {
+    "@quasar/app-vite": "^1.4.3",
+    "autoprefixer": "^10.4.2",
+    "postcss": "^8.4.14",
+    "prettier": "^2.5.1"
+  },
+  "engines": {
+    "node": "^20 || ^18 || ^16",
+    "npm": ">= 6.13.4",
+    "yarn": ">= 1.21.1"
+  }
+}
