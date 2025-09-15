@@ -2,6 +2,7 @@
 /keys
 /scholarship-bills
 /modules/employee-central/uploaded
+/.env
 
 *.pdf
 *.logs
