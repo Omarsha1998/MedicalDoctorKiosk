@@ -1,0 +1,12 @@
+/node_modules
+/keys
+/scholarship-bills
+/modules/employee-central/uploaded
+
+*.pdf
+*.logs
+*.log
+
+.env
+.env.*
+!.env.example
