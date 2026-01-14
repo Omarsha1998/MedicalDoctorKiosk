@@ -376,9 +376,40 @@
           </div>
 
           <div class="text-blue-10 text-bold col-12 text-h5 q-mb-sm">
-            Secretaries
+            {{ dataDoctorSecretaries.length > 1 ? "Secretaries" : "Secretary" }}
           </div>
+
           <div class="q-pl-md q-pr-md q-mb-md full-width">
+            <!-- Always show q-select -->
+            <q-select
+              v-model="selectedSecretaries"
+              :label="
+                dataDoctorSecretaries.length > 1 ? 'Secretaries' : 'Secretary'
+              "
+              label-color="blue-10"
+              :options="secretaryOptions"
+              option-label="nickName"
+              option-value="secretaryCode"
+              multiple
+              use-chips
+              use-input
+              fill-input
+              @filter="filterFn"
+              outlined
+              class="blue-outline col-12 col-sm-4"
+              :disable="!contactUpdate"
+              @update:model-value="(value) => onSecretaryChange(value)"
+            />
+
+            <div
+              v-if="dataDoctorSecretaries.length === 0"
+              class="text-italic text-subtitle1 text-negative q-mt-sm"
+            >
+              No secretaries currently assigned. Please select from the dropdown
+              above.
+            </div>
+          </div>
+          <!-- <div class="q-pl-md q-pr-md q-mb-md full-width">
             <div v-if="dataDoctorSecretaries.length > 0">
               <div
                 v-for="(secretary, index) in dataDoctorSecretaries"
@@ -453,7 +484,7 @@
             <div v-else class="text-italic text-h6">
               No Secretaries Assigned
             </div>
-          </div>
+          </div> -->
 
           <div class="text-blue-10 text-bold col-12 text-h5 q-mb-sm">
             Department / Specialties
@@ -754,7 +785,7 @@
     </q-card>
     <q-card
       v-if="!doctorConfig"
-      class="bg-grey-2"
+      class="bg-grey-2 virtual-scroll"
       style="
         border-radius: 10px;
         width: 100%;
@@ -795,6 +826,7 @@
                   "
                 />
               </div>
+
               <div class="col-12 text-left q-mt-sm">
                 <div class="row text-subtitle1 items-center">
                   <div class="col-2 text-left">
@@ -828,7 +860,21 @@
                   </div>
                   <div class="col-10 text-left">
                     <div
-                      v-if="selectedDoctorContact.length > 0"
+                      v-if="
+                        selectedDoctor.secName1 ||
+                        selectedDoctor.secMPN1 ||
+                        selectedDoctor.secName2 ||
+                        selectedDoctor.secMPN2
+                      "
+                    >
+                      {{ selectedDoctor.secMPN1 }}
+                      <span
+                        v-if="selectedDoctor.secName2 && selectedDoctor.secMPN2"
+                        >, {{ selectedDoctor.secMPN2 }}
+                      </span>
+                    </div>
+                    <div
+                      v-else-if="selectedDoctorContact.length > 0"
                       class="text-subtitle2"
                       style="word-break: break-word; white-space: normal"
                     >
@@ -1072,6 +1118,7 @@ export default {
     dataDoctor: Object,
     dataDoctorHmo: Object,
     dataDoctorSchedule: Object,
+    dataSecretaries: Object,
     dataDoctorEducation: Object,
     dataDoctorContacts: Object,
     hmoOptions: Object,
@@ -1156,6 +1203,10 @@ export default {
       licExpiration: null,
       philExpiration: null,
       scheduleOrigValue: null,
+
+      selectedSecretaries: [],
+      origSecretaries: [],
+      secretaryOptions: this.dataSecretaries,
     };
   },
 
@@ -1284,6 +1335,7 @@ export default {
         update(() => {
           this.hmos = this.hmoOptions;
           this.specDeptOptions = this.deptSpecOptions;
+          this.secretaryOptions = this.dataSecretaries;
         });
         return;
       }
@@ -1294,6 +1346,9 @@ export default {
         );
         this.specDeptOptions = this.deptSpecOptions.filter(
           (option) => option.label.toLowerCase().indexOf(needle) > -1
+        );
+        this.secretaryOptions = this.dataSecretaries.filter(
+          (option) => option.nickName.toLowerCase().indexOf(needle) > -1
         );
       });
     },
@@ -1384,7 +1439,7 @@ export default {
         }
       } else {
         const scheduleData = {
-          doctorCode: item.doctorCode,
+          doctorCode: item.doctorCode || this.dataDoctor.doctorEhrCode,
           id: item.id,
           day: item.day,
           timeFrom: field === "timeFrom" ? value : item.timeFrom,
@@ -1394,8 +1449,72 @@ export default {
 
         scheduleList.push(scheduleData);
       }
+    },
 
-      console.log(this.dataCombine);
+    onSecretaryChange(value) {
+      if (!this.dataCombine.length) {
+        this.dataCombine.push({
+          docInfo: [{}],
+          scheduleData: [],
+          contactData: [{}],
+          docSpecialty: [],
+          docSecretary: [],
+          docHmo: [],
+        });
+      }
+
+      const secInfoArr = this.dataCombine[0].docSecretary;
+      const prev = this.prevSecretaries || this.origSecretaries;
+
+      const getCode = (item) => item.code || item.secretaryCode;
+
+      const added = value.filter(
+        (v) => !prev.some((p) => getCode(p) === getCode(v))
+      );
+
+      const removed = prev.filter(
+        (p) => !value.some((v) => getCode(p) === getCode(v))
+      );
+
+      for (const sec of added) {
+        const secCode = getCode(sec);
+        const existingRemoveIndex = secInfoArr.findIndex(
+          (item) => item.secretaryCode === secCode && item.action === "remove"
+        );
+
+        if (existingRemoveIndex !== -1) {
+          secInfoArr.splice(existingRemoveIndex, 1);
+        } else {
+          secInfoArr.push({
+            secretaryCode: secCode,
+            doctorEhrCode: this.selectedDoctor.doctorEhrCode,
+            action: "add",
+          });
+        }
+      }
+
+      for (const sec of removed) {
+        const secCode = getCode(sec);
+        const existingAddIndex = secInfoArr.findIndex(
+          (item) => item.secretaryCode === secCode && item.action === "add"
+        );
+
+        if (existingAddIndex !== -1) {
+          secInfoArr.splice(existingAddIndex, 1);
+        } else {
+          secInfoArr.push({
+            id: sec.id,
+            secretaryCode: secCode,
+            doctorEhrCode: this.selectedDoctor.doctorEhrCode,
+            action: "remove",
+          });
+        }
+      }
+
+      this.prevSecretaries = value.map((v) => ({
+        ...v,
+        code: getCode(v),
+      }));
     },
 
     onSelectedChange(item, value, type) {
@@ -1461,7 +1580,7 @@ export default {
         }
 
         const propertyName = typeProperty[type];
-        docInfoObj[propertyName] = value || null;
+        docInfoObj[propertyName] = value || "";
       }
 
       if (type === "doctorSpecialty") {
@@ -1588,72 +1707,50 @@ export default {
     //   console.log(item.active);
     // },
 
-    async updateDoctor() {
-      if (this.dataCombine.length === 0) {
-        this.$q.notify({
-          color: "negative",
-          position: "center",
-          message: `Please specify some changes`,
-          icon: "report_problem",
-          iconColor: "white",
-          timeout: 1500,
-          progress: true,
-        });
-        return;
-      }
-
-      const scheduleData = this.dataCombine[0].scheduleData;
-
-      const hasIncompleteSched = scheduleData.some(
-        (item) =>
-          item.timeFrom === null ||
-          item.timeTo === null ||
-          item.timeFrom === "" ||
-          item.timeTo === ""
-      );
-
-      if (hasIncompleteSched) {
-        this.$q.notify({
-          color: "negative",
-          position: "center",
-          message: `Please specify some changes time from and time to`,
-          icon: "report_problem",
-          iconColor: "white",
-          timeout: 1500,
-          progress: true,
-        });
-        return;
-      }
-
-      const schedChange = this.dataCombine[0]?.scheduleData.some((newItem) => {
-        const origItem = this.scheduleOrigValue.find(
-          (o) => o.id === newItem.id
-        );
-
-        if (!origItem) {
-          return true;
-        }
-
-        return (
-          newItem.active !== origItem.active ||
-          newItem.day !== origItem.day ||
-          newItem.doctorCode !== origItem.doctorCode ||
-          newItem.timeFrom !== origItem.timeFrom ||
-          newItem.timeTo !== origItem.timeTo
-        );
+    notifyUser(message) {
+      this.$q.notify({
+        color: "negative",
+        position: "center",
+        message,
+        icon: "report_problem",
+        iconColor: "white",
+        timeout: 1500,
+        progress: true,
       });
+    },
 
-      if (!schedChange) {
-        this.$q.notify({
-          color: "negative",
-          position: "center",
-          message: `Please specify some changes`,
-          icon: "report_problem",
-          iconColor: "white",
-          timeout: 1500,
-          progress: true,
-        });
-        return;
+    async updateDoctor() {
+      if (!this.dataCombine.length) {
+        return this.notifyUser("Please specify some changes");
+      }
+
+      const scheduleData = this.dataCombine[0]?.scheduleData || [];
+
+      // validate incomplete times
+      const hasIncompleteSched = scheduleData.some(
+        ({ timeFrom, timeTo }) => !timeFrom || !timeTo
+      );
+      if (hasIncompleteSched) {
+        return this.notifyUser("Please specify time from and time to");
+      }
+
+      if (
+        scheduleData.length &&
+        !scheduleData.some((newItem) => {
+          const origItem = this.scheduleOrigValue.find(
+            (o) => o.id === newItem.id
+          );
+          if (!origItem) return true;
+          return (
+            newItem.active !== origItem.active ||
+            newItem.day !== origItem.day ||
+            newItem.doctorCode !== origItem.doctorCode ||
+            newItem.timeFrom !== origItem.timeFrom ||
+            newItem.timeTo !== origItem.timeTo
+          );
+        })
+      ) {
+        return this.notifyUser("Please specify some changes");
       }
 
       helperMethods.disablePointerEvents();
@@ -1801,6 +1898,14 @@ export default {
 
       this.scheduleOrigValue = JSON.parse(
         JSON.stringify(this.selectedDoctorSchedule)
+      );
+
+      this.selectedSecretaries = JSON.parse(
+        JSON.stringify(this.dataDoctorSecretaries)
+      );
+
+      this.origSecretaries = JSON.parse(
+        JSON.stringify(this.dataDoctorSecretaries)
       );
     },
 

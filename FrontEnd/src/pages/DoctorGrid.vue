@@ -6,7 +6,7 @@
           <LoadingSkeleton />
         </div> -->
         <div class="row q-mt-xl">
-          <div class="col-12 text-center lineDoc">
+          <div v-if="isLocalEnvironment" class="col-12 text-center lineDoc">
             <span class="line"></span>
             <h3 class="text-bold" :class="[$q.screen.name + '-textTitle']">
               DOCTORS DIRECTORY
@@ -112,7 +112,7 @@
             </div>
           </div>
 
-          <div class="col-12 q-mt-xl">
+          <div v-if="isLocalEnvironment" class="col-12 q-mt-xl">
             <div class="text-left text-subtitle1 row items-center">
               <q-badge
                 v-if="doctorsInCounts !== null"
@@ -164,7 +164,9 @@
           </div>
 
           <div
-            v-if="selectedDepartmentDescription?.length > 0"
+            v-if="
+              selectedDepartmentDescription?.length > 0 && isLocalEnvironment
+            "
             class="col-12 q-pa-none text-center lineDoc"
           >
             <span class="line"></span>
@@ -183,7 +185,7 @@
               :doctors="filteredDoctors"
               :secretaryView="false"
               :loading="loading"
-              :gridView="false"
+              :gridView="isLocalEnvironment ? false : true"
               @statusUpdated="getDoctors"
             />
           </div>
@@ -200,7 +202,10 @@
       </div>
     </q-page-container>
   </q-layout>
-  <footerLayout @data-emitted="handleSelectedSpecialization" />
+  <footerLayout
+    v-if="isLocalEnvironment"
+    @data-emitted="handleSelectedSpecialization"
+  />
 </template>
 
 <script>
@@ -249,6 +254,7 @@ export default {
       hmoImageGetter: "doctorsModule/getHmoImage",
       doctorsInCounts: "doctorsModule/getDoctorsIn",
       getDoctorsCounts: "doctorsModule/getDoctorsCounts",
+      isLocalEnvironment: "configModule/isLocalEnvironment",
     }),
 
     // doctors() {

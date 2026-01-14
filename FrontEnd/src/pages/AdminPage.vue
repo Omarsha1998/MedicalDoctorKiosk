@@ -184,7 +184,7 @@
               <q-btn
                 class="bg-positive text-white"
                 push
-                label="Add Doctor"
+                label="Add "
                 @click="getDoctors"
               />
             </div>
@@ -201,7 +201,7 @@
               class="bg-blue-10 row items-center q-pa-md"
               style="position: sticky; top: 0; z-index: 1; min-width: 400px"
             >
-              <div class="text-white text-bold">Add Doctor</div>
+              <div class="text-white text-bold">Add</div>
 
               <q-space></q-space>
               <q-btn
@@ -321,8 +321,8 @@
               <q-btn
                 class="bg-positive text-white"
                 push
-                label="Add Doctor"
-                @click="addDoctor"
+                label="Add "
+                @click="addSecretaryDoctor"
               />
             </div>
           </q-card>
@@ -457,31 +457,57 @@ export default {
 
     async removeDoctor(item) {
       try {
-        helperMethods.disablePointerEvents();
-        helperMethods.delay(500);
-        const data = {
-          id: item.id,
-          doctorCode: item.doctorCode,
-          secretaryCode: this.selectedSecretaryCode,
-        };
-        await this.$store.dispatch(
-          "doctorsModule/removeDoctorInSecretary",
-          data
-        );
-        this.$q.notify({
-          color: "positive",
-          position: "center",
-          message: `Doctor assignment remove successfully`,
-          icon: "check",
-          iconColor: "white",
-          timeout: 1500,
-          progress: true,
-        });
-        this.selectedSecretary = null;
-        this.selectedSecretaryCode = null;
-        await this.getAllSecretaryWithDoctors();
-        this.selectedDialog = false;
-        helperMethods.enablePointerEvents();
+        this.$q
+          .dialog({
+            title: "Confirmation",
+            message: `Are you sure you want to remove ${item.doctorName} under ${this.selectedSecretary}`,
+            persistent: true,
+            ok: {
+              push: true,
+              color: "blue-10",
+              label: "Confirm",
+              class: "text-subtitle1",
+            },
+            cancel: {
+              push: true,
+              color: "negative",
+              label: "Cancel",
+              class: "text-subtitle1",
+            },
+          })
+          .onOk(async () => {
+            helperMethods.disablePointerEvents();
+            helperMethods.delay(500);
+            const data = {
+              id: item.id,
+              doctorCode: item.doctorCode,
+              secretaryCode: this.selectedSecretaryCode,
+            };
+            await this.$store.dispatch(
+              "doctorsModule/removeDoctorInSecretary",
+              data
+            );
+            this.$q.notify({
+              color: "positive",
+              position: "center",
+              message: `Doctor assignment remove successfully`,
+              icon: "check",
+              iconColor: "white",
+              timeout: 1500,
+              progress: true,
+            });
+            this.selectedSecretary = null;
+            this.selectedSecretaryCode = null;
+            await this.getAllSecretaryWithDoctors();
+            this.selectedDialog = false;
+            helperMethods.enablePointerEvents();
+          })
+          .onCancel(() => {
+            helperMethods.enablePointerEvents();
+          })
+          .onDismiss(() => {
+            helperMethods.enablePointerEvents();
+          });
       } catch (error) {
         helperMethods.enablePointerEvents();
         this.$q.notify({
@@ -520,7 +546,7 @@ export default {
       this.addDialog = false;
     },
 
-    async addDoctor() {
+    async addSecretaryDoctor() {
       if (!this.selectedDoctors) {
         this.$q.notify({
           color: "negative",

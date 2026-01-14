@@ -1,7 +1,7 @@
 <template>
   <Loader :isLoading="loader" :login="false" />
   <q-select
-    v-if="!secretaryView && !doctorConfig"
+    v-if="!secretaryView && !doctorConfig && isLocalEnvironment"
     v-model="status"
     use-input
     input-debounce="0"
@@ -353,6 +353,7 @@
     :dataDoctorSchedule="selectedDoctorSched"
     :dataDoctorEducation="selectedDoctorEduc"
     :dataDoctorSecretaries="selectedDoctorSecretaries"
+    :dataSecretaries="secretariesOption"
     :hmoOptions="hmos"
     :consultatioTypeOptions="consultOption"
     :dataDoctorContacts="selectedDoctorContact"
@@ -460,6 +461,8 @@ export default {
       imageSrc: null,
       updateDialog: false,
       selectedDoctorSecretaries: [],
+      secretariesOption: [],
+      filteredDoctorsWithImages: [],
     };
   },
 
@@ -472,6 +475,7 @@ export default {
     ...mapGetters({
       hmoImageGetter: "doctorsModule/getHmoImage",
       validation: "userModule/hasValues",
+      isLocalEnvironment: "configModule/isLocalEnvironment",
     }),
 
     computedDoctors() {
@@ -498,7 +502,7 @@ export default {
             const aIsOnDuty = a.isOnDuty === 1 || a.isOnDuty === true;
             const bIsOnDuty = b.isOnDuty === 1 || b.isOnDuty === true;
 
-            if (aIsOnDuty !== bIsOnDuty) {
+            if (this.isLocalEnvironment && aIsOnDuty !== bIsOnDuty) {
               return bIsOnDuty - aIsOnDuty;
             }
             const nameA = (a.doctorName || "").toLowerCase();
@@ -509,27 +513,33 @@ export default {
         });
     },
 
+    displayedDoctors() {
+      if (this.gridView && this.filteredDoctorsWithImages.length > 0) {
+        return this.filteredDoctorsWithImages.slice(0, this.displayedCount);
+      }
+      return this.computedDoctors.slice(0, this.displayedCount);
+    },
+
+    hasReachedEnd() {
+      if (this.gridView && this.filteredDoctorsWithImages.length > 0) {
+        return this.displayedCount >= this.filteredDoctorsWithImages.length;
+      }
+      return this.displayedCount >= this.computedDoctors.length;
+    },
+
     columns() {
       // if (this.$q.screen.gt.md) return 4;
       if (this.$q.screen.gt.sm) return 3;
       if (this.$q.screen.gt.xs) return 2;
     },
-
-    displayedDoctors() {
-      return this.computedDoctors.slice(0, this.displayedCount);
-    },
-
-    hasReachedEnd() {
-      return this.displayedCount >= this.computedDoctors.length;
-    },
   },
 
   methods: {
-    handleRowClick(row) {
-      if (!this.doctorConfig) {
-        this.selectedDocDialog(row);
-      }
-    },
+    // handleRowClick(row) {
+    //   if (!this.doctorConfig) {
+    //     this.selectedDocDialog(row);
+    //   }
+    // },
 
     formatTime(dateTimeString) {
       if (!dateTimeString) return "-";
@@ -622,7 +632,10 @@ export default {
         doctorsInfo.doctorEhrCode
       );
 
-      this.selectedDoctorSecretaries = secretaries ? secretaries : [];
+      const { doctorSecretary, secretariesOption } = secretaries;
+
+      this.selectedDoctorSecretaries = doctorSecretary ? doctorSecretary : [];
+      this.secretariesOption = secretariesOption ? secretariesOption : [];
 
       if (!this.gridView) {
         const ehrCode = this.selectedDoctor.doctorEhrCode ?? null;
@@ -903,10 +916,15 @@ export default {
   },
 
   watch: {
-    displayedDoctors: {
-      async handler(newVal) {
-        if (this.gridView) {
-          for (const doctor of newVal) {
+    async computedDoctors(newVal) {
+      if (this.gridView) {
+        if (this.isLocalEnvironment) {
+          this.filteredDoctorsWithImages = newVal;
+          return;
+        }
+
+        const results = await Promise.all(
+          newVal.map(async (doctor) => {
             if (!doctor.picture) {
               const ehrCode = doctor.doctorEhrCode
                 ? doctor.doctorEhrCode
@@ -914,11 +932,23 @@ export default {
               const image = await this.getImage(ehrCode, null);
               doctor.picture = image;
             }
-          }
-        }
-      },
-      immediate: true,
+
+            if (
+              doctor.picture &&
+              doctor.picture !== null &&
+              doctor.picture !== "" &&
+              doctor.picture.length > 0
+            ) {
+              return doctor;
+            }
+            return null;
+          })
+        );
+
+        this.filteredDoctorsWithImages = results.filter((d) => d !== null);
+      }
     },
+
     searchText() {
       this.displayedCount = 12;
       this.isLoadingMore = false;

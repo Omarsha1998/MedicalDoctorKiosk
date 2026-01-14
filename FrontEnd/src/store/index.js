@@ -4,6 +4,7 @@ import middleware from "./middleware.js";
 import linkList from "./linkList";
 import doctorsModule from "./doctorsModule";
 import userModule from "./userModule";
+import configModule from "./configModule"; // Add this
 
 // Create Vuex Store
 const Store = createStore({
@@ -11,6 +12,7 @@ const Store = createStore({
     doctorsModule,
     userModule,
     linkList,
+    configModule, // Add this
   },
   plugins: [middleware],
 });
