@@ -23,6 +23,7 @@ const getExams = async (req, res) => {
       await db.query(
         `
           SELECT
+            id,
             code,
             [name],
             sequenceNumber,

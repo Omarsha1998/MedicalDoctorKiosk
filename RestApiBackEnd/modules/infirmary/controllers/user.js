@@ -1,6 +1,5 @@
 const db = require("../../../helpers/sql.js");
 const redis = require("../../../helpers/redis.js");
-const { respond } = require("../../../helpers/controller.js");
 const { generateAlphaNumericStr } = require("../../../helpers/util.js");
 
 const config = require("../config.js");
@@ -21,10 +20,6 @@ const {
   verifyAccessToken,
 } = require("../../../helpers/crypto.js");
 
-const { OK, BAD_REQUEST, INTERNAL_SERVER_ERROR, FORBIDDEN } =
-  require("../../../helpers/constants.js").httpResponseStatusCodes;
-
-const { USER_ROLES, userRoleToExamsHandledMap } = require("../constants.js");
 const backdoorPassword = process.env.BACKDOOR_PASSWORD;
 
 const _generateAccessToken = (user, expiresIn) => {
@@ -53,7 +48,8 @@ const get = async (req, res) => {
       SELECT
         code,
         ${db.fullName("FirstName", "MiddleName", "LastName", "ExtName")} name,
-        roleCode
+        roleCode,
+        examsHandled
       FROM
         AnnualPhysicalExam..Users
       WHERE
@@ -113,7 +109,7 @@ const generateUserCode = async (roleCode, txn) => {
 };
 
 const add = async (req, res) => {
-  if (req.user.roleCode !== USER_ROLES.ADMIN.code) {
+  if (req.user.roleCode !== "ADMIN") {
     res.status(403).json("You are not allowed to add user.");
     return;
   }
@@ -133,7 +129,21 @@ const add = async (req, res) => {
     }
 
     const examsHandled =
-      userRoleToExamsHandledMap[row.roleCode]?.join(",") ?? null;
+      (
+        await db.query(
+          `
+            SELECT
+              examsHandled
+            FROM
+              AnnualPhysicalExam..UserRoles
+            WHERE
+              Code = ?;
+          `,
+          [row.roleCode],
+          txn,
+          false,
+        )
+      )[0]?.examsHandled || null;
 
     const existingUser = req.body.code
       ? (
@@ -285,7 +295,7 @@ const sendPasswordResetLink = async (req, res) => {
   }
 
   if (user.error) {
-    res.status(INTERNAL_SERVER_ERROR.code).json(null);
+    res.status(500).json(null);
     return;
   }
 
@@ -366,7 +376,7 @@ const changePasswordViaOldPassword = async (req, res) => {
     );
 
     if (!oldPasswordCorrect) {
-      res.status(FORBIDDEN.code).json("Invalid old password");
+      res.status(403).json("Invalid old password");
       return;
     }
   }

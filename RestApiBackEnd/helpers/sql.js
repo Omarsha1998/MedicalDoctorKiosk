@@ -140,10 +140,6 @@ const query = async (command, args, conn, camelized) => {
     throw new Error("`command` is required.");
   }
 
-  if (!args) {
-    args = [];
-  }
-
   if (!conn) {
     conn = __conns.default;
   }
@@ -165,7 +161,10 @@ const query = async (command, args, conn, camelized) => {
   // console.log("query helper, args: ", args);
 
   try {
-    const result = await conn.request().query(command.split("?"), ...args);
+    const result =
+      args && args.length > 0
+        ? await conn.request().query(command.split("?"), ...args)
+        : await conn.request().query(command);
 
     if (result.recordset) {
       if (camelized) {

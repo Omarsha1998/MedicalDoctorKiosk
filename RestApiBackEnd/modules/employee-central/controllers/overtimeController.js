@@ -185,6 +185,7 @@ const getPendingOvertime = async (req, res) => {
 
 const processOvertime = async (
   data,
+  approvedWorkHours,
   employeeCode,
   cancelModule = false,
   lvl1,
@@ -198,6 +199,7 @@ const processOvertime = async (
   const statusValue = cancelModule ? "CANCELLED" : "PendingAccomplishment";
 
   const updateFields = {
+    ApprovedHours: parseFloat(approvedWorkHours).toFixed(2),
     Status: statusValue,
     [approvedByLevel2Field]: employeeCode,
   };
@@ -225,13 +227,15 @@ const processOvertime = async (
 };
 
 const handleOvertimeApproval = async (
-  overtimeId,
+  data,
   employeeCode,
   Status,
   reason,
   cancelModule = false,
 ) => {
   const arrayOfMessages = [];
+
+  const { overtimeId, workHours } = data;
 
   const checkOvertimeStatus = await overtimeModel.checkLevelStatus(
     overtimeId,
@@ -295,6 +299,7 @@ const handleOvertimeApproval = async (
             await overtimeModel.getOvertimeIdDetails(overtimeId);
           resultArray = await processOvertime(
             overtimeDetails[0],
+            workHours,
             employeeCode,
             cancelModule,
             true,
@@ -302,6 +307,7 @@ const handleOvertimeApproval = async (
         } else {
           resultArray = await overtimeModel.updateOvertimeAction(
             {
+              ApprovedHours: parseFloat(workHours).toFixed(2),
               Status: mappedStatus.PendingLevel2,
               [approvedByLevel1Field]: employeeCode,
             },
@@ -354,6 +360,7 @@ const handleOvertimeApproval = async (
           await overtimeModel.getOvertimeIdDetails(overtimeId);
         return await processOvertime(
           overtimeDetails[0],
+          workHours,
           employeeCode,
           cancelModule,
         );
@@ -387,14 +394,15 @@ const handleOvertimeApproval = async (
 
 const updateOvertimeAction = async (req, res) => {
   const employeeCode = req.user.employee_id;
-  const OvertimeIds = req.body.OvertimeIds;
+  const datas = req.body.data;
   const Status = req.body.Status;
+
   const reason = req.body.reason || "";
   const arrayOfMessages = [];
 
-  for (const overtimeId of OvertimeIds) {
+  for (const data of datas) {
     const result = await handleOvertimeApproval(
-      overtimeId,
+      data,
       employeeCode,
       Status,
       reason,
@@ -1068,6 +1076,18 @@ const approveRejectAccomplishment = async (req, res) => {
   res.status(200).json({ body: "Success approving overtime accomplishment" });
 };
 
+const unpaidOvertime = async (req, res) => {
+  const { fromDate, toDate, classCode } = req.query;
+
+  const data = await overtimeModel.unpaidOvertime(fromDate, toDate, classCode);
+
+  if (!Array.isArray(data) || data.length === 0) {
+    return res.status(500).json({ message: "Error in getting data." });
+  }
+
+  return res.status(200).json(data);
+};
+
 module.exports = {
   overtimeRequest,
   getPendingOvertime,
@@ -1088,4 +1108,5 @@ module.exports = {
   submitAccomplishment,
   getPendingAccomplishment,
   approveRejectAccomplishment,
+  unpaidOvertime,
 };

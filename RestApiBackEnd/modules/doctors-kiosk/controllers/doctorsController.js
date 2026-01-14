@@ -5,6 +5,7 @@ const fs = require("fs-extra");
 const path = require("path");
 const bcrypt = require("bcrypt");
 const tools = require("../../../helpers/tools.js");
+const { console } = require("inspector");
 
 const convertImageToBase64 = async (image) => {
   const imageData = await fs.readFile(image);
@@ -24,11 +25,27 @@ const insertImageBase64 = async () => {
       const validImageTypes = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
       if (validImageTypes.includes(extension)) {
         const base64Image = await convertImageToBase64(imagePath);
-        await doctorsModel.insertImageBase64(
-          base64Image,
-          code,
-          extension.substring(1),
-        );
+        const bufferedImage = Buffer.from(base64Image, "base64");
+
+        const insert = sqlHelper.transact(async (txn) => {
+          return await doctorsModel.insertImageBase64(
+            {
+              EHRCode: code,
+              EmployeeCode: null,
+              Picture: bufferedImage,
+            },
+            txn,
+            "DateTimeCreated",
+          );
+        });
+
+        console.log("ETO UNG NA INSERT:", insert);
+
+        // await doctorsModel.insertImageBase64(
+        //   base64Image,
+        //   code,
+        //   extension.substring(1),
+        // );
       } else {
         console.warn(
           `Skipping non-image file: ${file} (extension: ${extension})`,
@@ -517,10 +534,12 @@ const getAllSecretaryWithDoctors = async (req, res) => {
 
 const removeDoctorInSecretary = async (req, res) => {
   const { id } = req.body;
+  const updatedBy = req.user.employeeId;
   const updateDoctorAssignment = await sqlHelper.transact(async (txn) => {
     return await doctorsModel.updateDoctorAssignment(
       {
         IsDeleted: 1,
+        UpdatedBy: updatedBy,
       },
       { Id: id },
       txn,
@@ -629,38 +648,34 @@ const addDoctorAssignment = async (req, res) => {
   }
 
   for (const doctorCode of doctorCodes) {
-    const checkLogs = await doctorsModel.checkLogDoctorAssignment(
-      doctorCode.doctorEhrCode,
-      secretaryCode,
-    );
+    const result = await sqlHelper.transact(async (txn) => {
+      const checkLogs = await doctorsModel.checkLogDoctorAssignment(
+        doctorCode.doctorEhrCode,
+        secretaryCode,
+        txn,
+      );
 
-    if (checkLogs.length > 0) {
-      if (checkLogs[0].isDeleted === true) {
-        const updateDoctorAssignment = await sqlHelper.transact(async (txn) => {
-          return await doctorsModel.updateDoctorAssignment(
-            { IsDeleted: 0 },
-            { Id: checkLogs[0].id },
-            txn,
-            "DateTimeUpdated",
-          );
-        });
+      if (checkLogs.length > 0) {
+        if (checkLogs[0].isDeleted === true || checkLogs[0].isDeleted === 1) {
+          const updateDoctorAssignment =
+            await doctorsModel.updateDoctorAssignment(
+              { IsDeleted: 0 },
+              { Id: checkLogs[0].id },
+              txn,
+              "DateTimeUpdated",
+            );
 
-        if (!updateDoctorAssignment) {
-          return res
-            .status(500)
-            .json({ message: "Failed to update doctor assignment" });
+          if (!updateDoctorAssignment) {
+            throw new Error("Failed to update doctor assignment");
+          }
+
+          return `Updated doctor ${doctorCode.doctorEhrCode}`;
         }
 
-        responses.push(`Updated doctor ${doctorCode.doctorEhrCode}`);
-        continue;
+        return `Doctor ${doctorCode.doctorEhrCode} already assigned`;
       }
 
-      responses.push(`Doctor ${doctorCode.doctorEhrCode} already assigned`);
-      continue;
-    }
-
-    const insertDoctorAssignment = await sqlHelper.transact(async (txn) => {
-      return await doctorsModel.insertDoctorAssignment(
+      const insertDoctorAssignment = await doctorsModel.insertDoctorAssignment(
         {
           DoctorCode: doctorCode.doctorEhrCode,
           SecretaryCode: secretaryCode,
@@ -669,16 +684,75 @@ const addDoctorAssignment = async (req, res) => {
         txn,
         "DateTimeCreated",
       );
+
+      if (!insertDoctorAssignment) {
+        throw new Error("Failed to add doctor assignment");
+      }
+
+      return `Added doctor ${doctorCode.doctorEhrCode}`;
     });
 
-    if (!insertDoctorAssignment) {
+    if (!result) {
       return res
         .status(500)
-        .json({ message: "Failed to add doctor assignment" });
+        .json({ message: "Failed to process doctor assignment" });
     }
 
-    responses.push(`Added doctor ${doctorCode.doctorEhrCode}`);
+    responses.push(result);
   }
+
+  // for (const doctorCode of doctorCodes) {
+  //   const checkLogs = await doctorsModel.checkLogDoctorAssignment(
+  //     doctorCode.doctorEhrCode,
+  //     secretaryCode,
+  //     txn
+  //   );
+
+  //   if (checkLogs.length > 0) {
+  //     if (checkLogs[0].isDeleted === true) {
+  //       const updateDoctorAssignment = await sqlHelper.transact(async (txn) => {
+  //         return await doctorsModel.updateDoctorAssignment(
+  //           { IsDeleted: 0 },
+  //           { Id: checkLogs[0].id },
+  //           txn,
+  //           "DateTimeUpdated",
+  //         );
+  //       });
+
+  //       if (!updateDoctorAssignment) {
+  //         return res
+  //           .status(500)
+  //           .json({ message: "Failed to update doctor assignment" });
+  //       }
+
+  //       responses.push(`Updated doctor ${doctorCode.doctorEhrCode}`);
+  //       continue;
+  //     }
+
+  //     responses.push(`Doctor ${doctorCode.doctorEhrCode} already assigned`);
+  //     continue;
+  //   }
+
+  //   const insertDoctorAssignment = await sqlHelper.transact(async (txn) => {
+  //     return await doctorsModel.insertDoctorAssignment(
+  //       {
+  //         DoctorCode: doctorCode.doctorEhrCode,
+  //         SecretaryCode: secretaryCode,
+  //         CreatedBy: loggedInSecretaryCode,
+  //       },
+  //       txn,
+  //       "DateTimeCreated",
+  //     );
+  //   });
+
+  //   if (!insertDoctorAssignment) {
+  //     return res
+  //       .status(500)
+  //       .json({ message: "Failed to add doctor assignment" });
+  //   }
+
+  //   responses.push(`Added doctor ${doctorCode.doctorEhrCode}`);
+  // }
 
   return res.status(200).json({
     message: "Adding doctor assignemnt successfull",
@@ -726,15 +800,16 @@ const resetSecretaryPassword = async (req, res) => {
 const checkDoctorTimeOutDaily = async () => {
   await sqlHelper.transact(async (txn) => {
     const doctors = await doctorsModel.checkDoctorTimeOutDaily();
+
     for (const item of doctors) {
-      const d = new Date(item.dateTimeIn);
-      const dateTimeInWith8PMUTC = new Date(
-        Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 20),
-      );
+      const d = new Date(item.dateTimeIn).toLocaleString("en-PH", {
+        timeZone: "Asia/Manila",
+      });
+      const currentDateTime = new Date().toLocaleString("en-PH", {
+        timeZone: "Asia/Manila",
+      });
 
-      const currentDateTime = new Date();
-
-      if (currentDateTime > dateTimeInWith8PMUTC) {
+      if (currentDateTime > d) {
         await doctorsModel.updateDoctorAttendance(item.id, txn);
       }
     }
@@ -1264,16 +1339,58 @@ const updateDoctor = async (req, res) => {
 
     if (docSecretary.length > 0) {
       for (const doc of docSecretary) {
-        const update = await processUpdateData(
-          [doc],
-          "code",
-          "updateSecretary",
-          "UpdatedBy",
-          updatedBy,
-          "DateUpdated",
-          txn,
-        );
-        updateResult.push(update);
+        if (doc.action === "remove") {
+          const update = await processUpdateData(
+            [
+              {
+                id: doc.id,
+                isDeleted: 1,
+              },
+            ],
+            "id",
+            "updateDoctorAssignment",
+            "UpdatedBy",
+            updatedBy,
+            "DateTimeUpdated",
+            txn,
+          );
+          updateResult.push(update);
+        } else if (doc.action === "add") {
+          const checkDuplicate = await doctorsModel.checkLogDoctorAssignment(
+            doc.doctorEhrCode,
+            doc.secretaryCode,
+            txn,
+          );
+
+          if (checkDuplicate && checkDuplicate.length > 0) {
+            const update = await processUpdateData(
+              [
+                {
+                  id: checkDuplicate[0].id,
+                  isDeleted: 0,
+                },
+              ],
+              "id",
+              "updateDoctorAssignment",
+              "UpdatedBy",
+              updatedBy,
+              "DateTimeUpdated",
+              txn,
+            );
+            updateResult.push(update);
+          } else {
+            const insert = await doctorsModel.insertDoctorAssignment(
+              {
+                SecretaryCode: doc.secretaryCode,
+                DoctorCode: doc.doctorEhrCode,
+                CreatedBy: updatedBy,
+              },
+              txn,
+              "DateTimeCreated",
+            );
+            updateResult.push(insert);
+          }
+        }
       }
     }
 
@@ -1347,10 +1464,29 @@ const updateDoctor = async (req, res) => {
 const doctorSecretaries = async (req, res) => {
   const doctorEhrCode = req.params.doctorEhrCode;
 
-  // const { doctorEhrCode } = req.query;
-  const schedule = await doctorsModel.doctorSecretaries(doctorEhrCode);
-  if (!schedule) return res.status(500).json();
-  return res.status(200).json(schedule);
+  if (!doctorEhrCode) {
+    return res.status(400).json({
+      message: "Missing doctorEhrCode parameter.",
+    });
+  }
+
+  const [doctorSecretary, secretariesOption] = await Promise.all([
+    doctorsModel.doctorSecretaries(doctorEhrCode),
+    doctorsModel.secretaries(),
+  ]);
+
+  if (!secretariesOption) {
+    return res.status(500).json({
+      message: "Failed to load secretaries option.",
+    });
+  }
+
+  const combineData = {
+    doctorSecretary: doctorSecretary || [],
+    secretariesOption,
+  };
+
+  return res.status(200).json(combineData);
 };
 
 // const updateDoctor = async (req, res) => {

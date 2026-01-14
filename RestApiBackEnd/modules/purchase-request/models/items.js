@@ -163,8 +163,12 @@ const selectReorderItems = async function (conditions, args, txn, options) {
 
   if (reorderPointItems.length > 0) {
     for (const list of reorderPointItems) {
-      list.brandName = list.description;
-      list.genName = "";
+      list.categoryDesc =
+        list.categoryDesc === null ? "NO CATEGORY" : list.categoryDesc;
+      list.subCategoryDesc =
+        list.subCategoryDesc === null ? "NO CATEGORY" : list.subCategoryDesc;
+      // list.brandName = list.description;
+      // list.genName = list.genName;
       list.dosageForm = list.uOM;
       list.itemCode = list.itemcode;
       list.code = list.itemcode;
@@ -174,7 +178,7 @@ const selectReorderItems = async function (conditions, args, txn, options) {
       list.itemDescription = "";
     }
   }
-
+  // console.log(reorderPointItems);
   return reorderPointItems;
 };
 
@@ -216,6 +220,7 @@ const selectSubcategories = async function (conditions, args, txn, options) {
         categoryCode,
         name,
         description,
+        groupTitle,
         active,
         createdBy,
         updatedBy,

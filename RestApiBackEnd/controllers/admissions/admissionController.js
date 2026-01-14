@@ -473,8 +473,9 @@ const getCollegeDeclarations = async function (req, res) {
 const getRequirements = async function (req, res) {
   const returnValue = await sqlHelper.transact(async (txn) => {
     try {
-      const conditions = "and active = ?";
-      const args = [1];
+      const conditions = "";
+      // and active = 1
+      const args = [];
 
       return await configsModel.selectRequirements(
         conditions,
@@ -722,8 +723,14 @@ const getStudentDocuments = async function (req, res) {
       let args = [];
 
       if (req.query.referenceNumber) {
-        conditions = "and ref_number = ? and active = ?  and college = ?";
-        args = [req.query.referenceNumber, 1, req.query.college];
+        conditions =
+          "and ref_number = ? and active = ?  and college = ? and semester = ?";
+        args = [
+          req.query.referenceNumber,
+          1,
+          req.query.college,
+          req.query.semester,
+        ];
       }
 
       if (req.query.documentFile) {
@@ -2723,7 +2730,7 @@ const tagApplicationInfo = async function (req, res) {
       const applicationInfo = req.body.applicationInfo;
       const admissionDetails = req.body.admissionDetails;
 
-      console.log(admissionDetails);
+      // console.log(admissionDetails);
 
       if (applicationInfo.application_status === "FOR ACCEPTANCE") {
         applicationInfo.forAcceptanceDate = await util.currentDateTime();
@@ -2885,6 +2892,8 @@ const putApplicationStatus = async function (req, res) {
       );
 
       if (updateAppInfo.error === undefined) {
+        const tokenBearerSMS = await util.getTokenSMS();
+        const accessToken = tokenBearerSMS.accessToken;
         if (req.body.statusDetails.appStatus === "ACCEPTED") {
           const smsMessage = {
             messageType: "sms",
@@ -2892,8 +2901,6 @@ const putApplicationStatus = async function (req, res) {
             app: "UERM STUDENT ADMISSION",
             text: notifications.sms,
           };
-          const tokenBearerSMS = await util.getTokenSMS();
-          const accessToken = tokenBearerSMS.accessToken;
           await tools.sendSMSInsertDB(accessToken, smsMessage);
           const emailContent = {
             header: "UERM Student Admission",
@@ -2910,8 +2917,6 @@ const putApplicationStatus = async function (req, res) {
             app: "UERM STUDENT ADMISSION",
             text: notifications.sms,
           };
-          const tokenBearerSMS = await util.getTokenSMS();
-          const accessToken = tokenBearerSMS.accessToken;
           await tools.sendSMSInsertDB(accessToken, smsMessage);
           const emailContent = {
             header: "UERM Student Admission",
@@ -2944,6 +2949,24 @@ const putApplicationStatus = async function (req, res) {
             },
             txn,
           );
+        } else if (req.body.statusDetails.appStatus === "RECEIVED") {
+          if (req.body.admissionDetails.course === "APMD") {
+            const smsMessage = {
+              messageType: "sms",
+              destination: admissionDetails.mobileNumber,
+              app: "UERM STUDENT ADMISSION",
+              text: notifications.sms,
+            };
+            await tools.sendSMSInsertDB(accessToken, smsMessage);
+            const emailContent = {
+              header: "UERM Student Admission",
+              subject: "UERM Student Admission - Update",
+              content: `${notifications.email}`,
+              email: admissionDetails.email,
+              name: `${admissionDetails.fullName}`,
+            };
+            await util.sendEmail(emailContent);
+          }
         }
       }
 
@@ -2952,6 +2975,8 @@ const putApplicationStatus = async function (req, res) {
       console.log(error);
       return { error: error };
     }
+
+    // return true;
   });
 
   if (returnValue.error !== undefined) {

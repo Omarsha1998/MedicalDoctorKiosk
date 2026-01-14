@@ -143,5 +143,5 @@ router.post("/logout", userController.logout);
 // router.get("/picture", doctorsController.getPicture);
 // scheduleDailyTask(15, 7, doctorsController.doctorScript);
 // scheduleDailyTask(14, 11, doctorsController.sendSmsSecretaryDetails);
-
+// doctorsController.insertImageBase64();
 module.exports = router;

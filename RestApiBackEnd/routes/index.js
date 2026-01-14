@@ -91,35 +91,38 @@ router.use(
 // Room Management //
 router.use("/room-mgt", require("../modules/room-mgt/routes/routes.js"));
 
+// IRMS //
+router.use("/incident-report/", require("../modules/irup/routes/routes.js"));
+
 // Ancillary Results Project //
-router.use(
-  "/ancillary/users",
-  require("../modules/ancillary-results/routes/userRoutes.js"),
-);
-router.use(
-  "/ancillary/departments",
-  require("../modules/ancillary-results/routes/departmentRoutes.js"),
-);
-router.use(
-  "/ancillary/charges",
-  require("../modules/ancillary-results/routes/chargeRoutes.js"),
-);
-router.use(
-  "/ancillary/test-orders",
-  require("../modules/ancillary-results/routes/testOrderRoutes.js"),
-);
-router.use(
-  "/ancillary/process-flows",
-  require("../modules/ancillary-results/routes/processFlowRoutes.js"),
-);
-router.use(
-  "/ancillary/tests",
-  require("../modules/ancillary-results/routes/testRoutes.js"),
-);
-router.use(
-  "/ancillary/test-templates",
-  require("../modules/ancillary-results/routes/testTemplateRoutes.js"),
-);
+// router.use(
+//   "/ancillary/users",
+//   require("../modules/ancillary-results/routes/userRoutes.js"),
+// );
+// router.use(
+//   "/ancillary/departments",
+//   require("../modules/ancillary-results/routes/departmentRoutes.js"),
+// );
+// router.use(
+//   "/ancillary/charges",
+//   require("../modules/ancillary-results/routes/chargeRoutes.js"),
+// );
+// router.use(
+//   "/ancillary/test-orders",
+//   require("../modules/ancillary-results/routes/testOrderRoutes.js"),
+// );
+// router.use(
+//   "/ancillary/process-flows",
+//   require("../modules/ancillary-results/routes/processFlowRoutes.js"),
+// );
+// router.use(
+//   "/ancillary/tests",
+//   require("../modules/ancillary-results/routes/testRoutes.js"),
+// );
+// router.use(
+//   "/ancillary/test-templates",
+//   require("../modules/ancillary-results/routes/testTemplateRoutes.js"),
+// );
 // Ancillary Results Project //
 
 router.use("/users", require("./users.js"));

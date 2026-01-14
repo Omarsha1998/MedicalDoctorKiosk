@@ -1,12 +1,28 @@
 const sqlHelper = require("../../../helpers/sql.js");
-const insertImageBase64 = async (base64Image, code, imageFileType) => {
-  const bufferedImage = Buffer.from(base64Image, "base64");
-  return await sqlHelper.query(
-    `UPDATE UERMMMC..HMO
-    SET ImageFile = ?, ImageFileType = ?
-    WHERE CODE = ?`,
-    [bufferedImage, imageFileType, code],
+// const insertImageBase64 = async (base64Image, code, imageFileType) => {
+//   const bufferedImage = Buffer.from(base64Image, "base64");
+//   return await sqlHelper.query(
+//     `UPDATE UERMMMC..HMO
+//     SET ImageFile = ?, ImageFileType = ?
+//     WHERE CODE = ?`,
+//     [bufferedImage, imageFileType, code],
+//   );
+// };
+
+const insertImageBase64 = async (item, txn, creationDateTimeField) => {
+  return await sqlHelper.insert(
+    "PictureDatabase..PictureMD",
+    item,
+    txn,
+    creationDateTimeField,
   );
+  // const bufferedImage = Buffer.from(base64Image, "base64");
+  // return await sqlHelper.query(
+  //   `UPDATE PictureDatabase..Picture
+  //   SET PictureImage = ?
+  //   WHERE PictureID = ?`,
+  //   [bufferedImage, imageFileType, code],
+  // );
 };
 
 const getServices = async () => {
@@ -376,12 +392,13 @@ const getDoctors = async ({
             STRING_AGG(
                 dcs.Day + ' - (' +
                 REPLACE(RIGHT(CONVERT(VARCHAR(20), dcs.TimeFrom, 100), 7), ' ', '') + ' to ' +
-                REPLACE(RIGHT(CONVERT(VARCHAR(20), dcs.TimeTo, 100), 7), ' ', '') + ') - ' +
-                dct.Name,
+                REPLACE(RIGHT(CONVERT(VARCHAR(20), dcs.TimeTo, 100), 7), ' ', '') + ')' +
+                ISNULL(' - ' + dct.Name, ''),
                 ', '
             ) AS DoctorSchedule
         FROM UERMMMC..DoctorConsultationSchedules dcs
-		LEFT JOIN UERMMMC..DoctorConsultationTypes dct ON dcs.ConsultationTypeCode = dct.Code
+		    LEFT JOIN UERMMMC..DoctorConsultationTypes dct ON dcs.ConsultationTypeCode = dct.Code
+        WHERE dcs.Active = 1
         GROUP BY dcs.DoctorCode
     ),
     DoctorDeptSpecialty AS (
@@ -798,7 +815,7 @@ const updateDoctorAssignment = async (
   );
 };
 
-const checkLogDoctorAssignment = async (doctorCode, secretaryCode) => {
+const checkLogDoctorAssignment = async (doctorCode, secretaryCode, txn) => {
   return await sqlHelper.query(
     `SELECT *
     FROM
@@ -806,6 +823,7 @@ const checkLogDoctorAssignment = async (doctorCode, secretaryCode) => {
     WHERE SecretaryCode = ? AND DoctorCode = ?
     `,
     [secretaryCode, doctorCode],
+    txn,
   );
 };
 
@@ -1058,6 +1076,7 @@ const insertSchedule = async (item, txn, creationDateTimeField) => {
 const doctorSecretaries = async (doctorEhrCode) => {
   return await sqlHelper.query(
     `SELECT 
+      ds.id,
       ds.SecretaryCode,
       ds.DoctorCode,
       d.NickName,
@@ -1065,7 +1084,7 @@ const doctorSecretaries = async (doctorEhrCode) => {
       d.ContactNumber2
     FROM UERMMMC..DoctorSecretaryAssignments ds
     LEFT JOIN UERMMMC..DoctorSecretaries d ON ds.SecretaryCode = d.Code
-    WHERE ds.DoctorCode = ?
+    WHERE ds.DoctorCode = ? and ds.IsDeleted != 1
     `,
     [doctorEhrCode],
   );
@@ -1078,6 +1097,19 @@ const updateSecretary = async (item, condition, txn, updateTimeField) => {
     condition,
     txn,
     updateTimeField,
+  );
+};
+
+const secretaries = async () => {
+  return await sqlHelper.query(
+    `SELECT 
+      Code,
+      NickName
+    FROM 
+      UERMMMC..DoctorSecretaries
+    WHERE IsActive = 1 and Code != 'Admin'
+    ORDER BY NickName ASC
+    `,
   );
 };
 
@@ -1124,4 +1156,5 @@ module.exports = {
   insertSchedule,
   doctorSecretaries,
   updateSecretary,
+  secretaries,
 };

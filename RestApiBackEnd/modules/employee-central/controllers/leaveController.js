@@ -2717,16 +2717,24 @@ const getActiveEmployees = async (req, res) => {
   if (!result) return res.status(500).json(null);
 
   let hrEmployeeCodes = [];
-  if (hrApprover && hrApprover.length > 0 && hrApprover[0].employeeCodes) {
-    hrEmployeeCodes = hrApprover[0].employeeCodes
-      .split(",")
-      .map((code) => code.trim());
+  if (hrApprover && hrApprover.length > 0) {
+    hrEmployeeCodes = hrApprover.flatMap((approver) => {
+      if (approver.employeeCodes) {
+        return approver.employeeCodes
+          .split(",")
+          .map((code) => code.trim())
+          .filter((code) => code);
+      }
+      return [];
+    });
   }
 
   const exclusionList = [...hrEmployeeCodes, approverCode];
 
   const filteredResult = result.filter(
-    (employee) => !exclusionList.includes(employee.employeeCode),
+    (employee) =>
+      employee.employeeCode !== approverCode &&
+      !exclusionList?.includes(employee.employeeCode),
   );
 
   return res.status(200).json(filteredResult);

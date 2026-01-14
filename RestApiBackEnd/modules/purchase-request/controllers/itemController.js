@@ -23,14 +23,14 @@ const getItems = async function (req, res) {
 
       if (stockItem) {
         if (meds) {
-          sqlWhere = `and discontinue = 0 and phicGroupCode = 'MED' and isStockitem = 1 and (forDeletion <> 1 or forDeletion is null) and (
+          sqlWhere = `and discontinue = 0 and isException = 0 and phicGroupCode = 'MED' and isStockitem = 1 and (forDeletion <> 1 or forDeletion is null) and (
             brandName LIKE '%${searchQuery}%' OR
             genName LIKE '%${searchQuery}%' OR
             a.itemCode LIKE '%${searchQuery}%' OR 
             code LIKE '%${searchQuery}%'
           )`;
         } else if (warehouse) {
-          sqlWhere = `and discontinue = 0 and (forDeletion <> 1 or forDeletion is null) and (
+          sqlWhere = `and discontinue = 0 and isException = 0  and (forDeletion <> 1 or forDeletion is null) and (
               brandName LIKE '%${searchQuery}%' OR
               genName LIKE '%${searchQuery}%' OR
               a.itemCode LIKE '%${searchQuery}%' OR
@@ -38,7 +38,7 @@ const getItems = async function (req, res) {
             )`;
         } else {
           // and phicGroupCode <> 'MED'
-          sqlWhere = `and discontinue = 0 and phicGroupCode <> 'MED'  and isStockitem = 1 and (forDeletion <> 1 or forDeletion is null) and (
+          sqlWhere = `and discontinue = 0 and isException = 0 and phicGroupCode <> 'MED'  and isStockitem = 1 and (forDeletion <> 1 or forDeletion is null) and (
               brandName LIKE '%${searchQuery}%' OR
               genName LIKE '%${searchQuery}%' OR
               a.itemCode LIKE '%${searchQuery}%' OR
@@ -312,11 +312,18 @@ const getAllItems = async function (req, res) {
 const getItemCategories = async function (req, res) {
   const returnValue = await sqlHelper.transact(async (txn) => {
     // const { searchQuery, isStockItem, isMeds } = req.query;
+    const { all } = req.query;
     try {
-      const sqlWhere =
+      let sqlWhere =
         "and active = ? and code is not null and inventoriable = ? and parentCode is null and categoryCode is not null";
       const sqlTop = "";
-      const args = [1, 1];
+      let args = [1, 1];
+
+      if (all) {
+        sqlWhere =
+          "and active = ? and code is not null and categoryCode is not null";
+        args = [1];
+      }
 
       return await items.selectCategories(sqlWhere, args, txn, {
         top: sqlTop,

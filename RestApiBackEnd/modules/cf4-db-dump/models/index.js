@@ -15,6 +15,8 @@ const subjectiveModel = require("./subjective.js");
 const courseWardModel = require("./course-ward.js");
 const medicineModel = require("./medicine.js");
 
+const errorLoggerModel = require("./error-logger.js");
+
 const modelsMap = {
   [patientModel.table]: patientModel,
   [profileModel.table]: profileModel,
@@ -74,7 +76,12 @@ const dumpClaim = async (caseNo, txn) => {
   const cf4DbDumpConn = db.getConn("eclaims");
 
   if (!cf4DbDumpConn) {
-    console.log("Unable to dump CF4 data. EClaims server is not available.");
+    await errorLoggerModel.insert(
+      caseNo,
+      "Unable to dump CF4 data. EClaims server is not available.",
+      txn,
+    );
+
     return null;
   }
 
@@ -126,7 +133,7 @@ const dumpClaim = async (caseNo, txn) => {
   //   )[0];
 
   if (!_case) {
-    console.log("cf4-db-dump: Case not found.");
+    await errorLoggerModel.insert(caseNo, "Case not found.", txn);
     return null;
   }
 
@@ -159,7 +166,7 @@ const dumpClaim = async (caseNo, txn) => {
   )[0];
 
   if (!patient) {
-    console.log("cf4-db-dump: Patient not found.");
+    await errorLoggerModel.insert(caseNo, "Patient not found.", txn);
     return null;
   }
 
@@ -211,7 +218,7 @@ const dumpClaim = async (caseNo, txn) => {
   }
 
   if (!claim || claimDetailRows.length === 0) {
-    console.log("cf4-db-dump: CF4 not found.");
+    await errorLoggerModel.insert(caseNo, "CF4 not found.", txn);
     return null;
   }
 
@@ -280,7 +287,7 @@ const dumpClaim = async (caseNo, txn) => {
 
   const addedConsultation = await db.transact(async (txn) => {
     // console.log("Adding patient...");
-    const addedPatient = await patientModel.insert(
+    const addedPatient = await patientModel.upsert(
       userCode,
       pmccNo,
       patient,
@@ -289,7 +296,7 @@ const dumpClaim = async (caseNo, txn) => {
     );
 
     // console.log("Adding profile...");
-    const addedProfile = await profileModel.insert(
+    const addedProfile = await profileModel.upsert(
       userCode,
       addedPatient.id,
       {
@@ -304,7 +311,7 @@ const dumpClaim = async (caseNo, txn) => {
 
     // console.log("Adding med hist...");
     if (pxMedHist) {
-      const addedMedHist = await medHistModel.insert(
+      const addedMedHist = await medHistModel.upsert(
         userCode,
         addedPatient.id,
         true,
@@ -316,7 +323,7 @@ const dumpClaim = async (caseNo, txn) => {
 
     // console.log("Adding fam med hist...");
     if (pxFamMedHist) {
-      const addedFamMedHist = await medHistModel.insert(
+      const addedFamMedHist = await medHistModel.upsert(
         userCode,
         addedPatient.id,
         false,
@@ -327,7 +334,7 @@ const dumpClaim = async (caseNo, txn) => {
     }
 
     // console.log("Adding mens hist...");
-    const addedMensHist = await mensHistModel.insert(
+    const addedMensHist = await mensHistModel.upsert(
       userCode,
       addedPatient.id,
       patient.gender,
@@ -336,7 +343,7 @@ const dumpClaim = async (caseNo, txn) => {
     );
 
     // console.log("Adding eclaim...");
-    // const addedEClaim = await eClaimModel.insert(
+    // const addedEClaim = await eClaimModel.upsert(
     //   hospitalCode,
     //   null,
     //   userCode,
@@ -348,7 +355,7 @@ const dumpClaim = async (caseNo, txn) => {
     // );
 
     // console.log("Adding consultation..");
-    const addedConsultation = await consultationModel.insert(
+    const addedConsultation = await consultationModel.upsert(
       userCode,
       _case.caseNo,
       {
@@ -359,7 +366,7 @@ const dumpClaim = async (caseNo, txn) => {
     );
 
     // console.log("Adding cf4claim...");
-    // const addedCf4Claim = await cf4ClaimModel.insert(
+    // const addedCf4Claim = await cf4ClaimModel.upsert(
     //   addedPatient.id,
     //   addedConsultation.id,
     //   addedEClaim.id,
@@ -371,7 +378,7 @@ const dumpClaim = async (caseNo, txn) => {
       for (const item of rowsToInsertMap[table]) {
         // console.log(`Inserting into table ${table}...`);
 
-        await modelsMap[table].insert(
+        await modelsMap[table].upsert(
           userCode,
           addedConsultation.id,
           item,
@@ -385,7 +392,7 @@ const dumpClaim = async (caseNo, txn) => {
   }, cf4DbDumpConn);
 
   if (addedConsultation.error) {
-    console.log(addedConsultation.error);
+    await errorLoggerModel.insert(caseNo, addedConsultation.error, txn);
     return null;
   }
 
