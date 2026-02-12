@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const util = require("../../../helpers/util");
 const sqlHelper = require("../../../helpers/sql");
 

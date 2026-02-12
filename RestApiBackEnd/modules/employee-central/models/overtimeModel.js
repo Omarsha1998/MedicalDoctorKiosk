@@ -435,6 +435,191 @@ const getPendingAccomplishment = async (
   );
 };
 
+// const unpaidOvertime = async (fromDate, toDate, classCode) => {
+//   const query = `
+//     WITH smartNoteResolved AS (
+//         SELECT
+//             ot.otId AS OvertimeId,
+//             ot.code AS EmployeeCode,
+//             ot.name AS EmployeeName,
+//             ot.Position,
+//             ot.Department,
+//             ot.deptCode AS DepartmentCode,
+//             ot.otFrom AS OvertimeFrom,
+//             ot.otTo AS OvertimeTo,
+//             ot.transmittalHours AS OvertimeHours,
+//             ot.statusDescription AS Status,
+//             ot.PayrollPeriod,
+//             COALESCE(
+//                 vm.NOTE,
+//                 CASE
+//                     WHEN sp.DOFF1 = DATEPART(WEEKDAY, CONVERT(DATE, ot.otTo))
+//                       OR sp.DOFF2 = DATEPART(WEEKDAY, CONVERT(DATE, ot.otTo))
+//                     THEN 'DAY OFF'
+//                     ELSE NULL
+//                 END
+//             ) AS ResolvedNote,
+//             cal.TYPE AS CalendarType
+//         FROM hr..vw_OTStatus ot
+//         OUTER APPLY (
+//             SELECT TOP 1 *
+//             FROM UERMATT..vw_SchedManual vm
+//             WHERE vm.EMPCODE = ot.code
+//               AND vm.DATE = CONVERT(DATE, ot.otTo)
+//         ) vm
+//         OUTER APPLY (
+//             SELECT TOP 1 *
+//             FROM UERMATT..vw_SchedPermanent sp
+//             WHERE sp.EMPCODE = ot.code
+//         ) sp
+//         OUTER APPLY (
+//             SELECT TOP 1 c.NOTE, c.TYPE
+//             FROM [UE database]..jom_HRMS_Calendar c
+//             WHERE c.DATE = CONVERT(DATE, ot.otTo)
+//         ) cal
+//       WHERE ot.statusCode IN (3,4,5,6,9)
+//           AND (CONVERT(DATE, otFrom) >= ? AND CONVERT(DATE, otTo) <= ?)
+//     ),
+//     otComputed AS (
+//         SELECT *,
+//             CASE
+//                 WHEN ResolvedNote = 'DAY OFF'
+//                     AND CalendarType IN (
+//                         'SPECIAL NON-WORKING HOLIDAY',
+//                         'SPECIAL WORKING HOLIDAY',
+//                         'REGULAR HOLIDAY') THEN 'OT 130'
+//                 WHEN ResolvedNote = 'REST DAY'
+//                     AND CalendarType IN (
+//                         'SPECIAL NON-WORKING HOLIDAY',
+//                         'SPECIAL WORKING HOLIDAY',
+//                         'REGULAR HOLIDAY') THEN 'OT 135'
+//                 WHEN ResolvedNote = 'DAY OFF'
+//                     AND CalendarType IS NULL THEN 'OT 130'
+//                 WHEN ResolvedNote = 'REST DAY'
+//                     AND CalendarType IS NULL THEN 'OT 135'
+//                 WHEN ResolvedNote = CalendarType THEN 'OT 130'
+//                 WHEN ResolvedNote IS NULL THEN 'OT 130'
+//                 ELSE NULL
+//             END AS OTType
+//         FROM smartNoteResolved
+//     ),
+//     holidayDates AS (
+//         SELECT
+//             DATE,
+//             NOTE,
+//             TYPE,
+//             CASE
+//                 WHEN TYPE LIKE '%SPECIAL%' THEN 'OT 30'
+//                 WHEN TYPE = 'REGULAR HOLIDAY' THEN 'OT 100'
+//                 ELSE NULL
+//             END AS HolidayOTType
+//         FROM [UE database]..jom_HRMS_Calendar
+//         WHERE DATE >= ? AND DATE <= ?
+//           AND DELETED = 0
+//           AND TYPE IN ('SPECIAL NON-WORKING HOLIDAY', 'SPECIAL WORKING HOLIDAY', 'REGULAR HOLIDAY')
+//     ),
+//     allEmployees AS (
+//         SELECT DISTINCT
+//             EmployeeCode,
+//             EmployeeName,
+//             Position,
+//             Department,
+//             DepartmentCode
+//         FROM smartNoteResolved
+//     ),
+//     holidayPay AS (
+//         SELECT
+//             ae.EmployeeCode,
+//             ae.EmployeeName,
+//             ae.Position,
+//             ae.Department,
+//             ae.DepartmentCode,
+//             hd.DATE AS OvertimeFrom,
+//             hd.DATE AS OvertimeTo,
+//             8.0 AS OvertimeHours,
+//             'Holiday Pay' AS Status,
+//             NULL AS PayrollPeriod,
+//             hd.NOTE AS ResolvedNote,
+//             hd.TYPE AS CalendarType,
+//             hd.HolidayOTType AS OTType
+//         FROM allEmployees ae
+//         CROSS JOIN holidayDates hd
+//         WHERE NOT EXISTS (
+//             SELECT 1
+//             FROM otComputed ot
+//             WHERE ot.EmployeeCode = ae.EmployeeCode
+//               AND CONVERT(DATE, ot.OvertimeFrom) <= hd.DATE
+//               AND CONVERT(DATE, ot.OvertimeTo) >= hd.DATE
+//         )
+//     ),
+//     allRecords AS (
+//         SELECT
+//             EmployeeCode,
+//             EmployeeName,
+//             Position,
+//             Department,
+//             DepartmentCode,
+//             OvertimeFrom,
+//             OvertimeTo,
+//             OvertimeHours,
+//             OTType,
+//             'Overtime' AS RecordType
+//         FROM otComputed
+
+//         UNION ALL
+
+//         SELECT
+//             EmployeeCode,
+//             EmployeeName,
+//             Position,
+//             Department,
+//             DepartmentCode,
+//             OvertimeFrom,
+//             OvertimeTo,
+//             OvertimeHours,
+//             OTType,
+//             'Holiday Pay' AS RecordType
+//         FROM holidayPay
+//     )
+//     SELECT
+//         ar.EmployeeCode,
+//         ar.EmployeeName,
+//         e.EMP_CLASS_DESC AS EmployeeClass,
+//         ar.Position,
+//         ar.Department,
+//         ar.DepartmentCode,
+//         ROUND(CAST(DATEDIFF(MONTH, e.HIRED, GETDATE()) AS float) / 12.0, 2) AS ServiceLength,
+//         STRING_AGG(
+//             '(' + CONVERT(VARCHAR(10), CONVERT(DATE, ar.OvertimeFrom), 23) + ' - ' + ar.OTType + ')',
+//             ', '
+//         ) AS Dates,
+//         SUM(CASE WHEN ar.OTType = 'OT 130' THEN ar.OvertimeHours ELSE 0 END) AS [OT 130],
+//         SUM(CASE WHEN ar.OTType = 'OT 135' THEN ar.OvertimeHours ELSE 0 END) AS [OT 135],
+//         SUM(CASE WHEN ar.OTType = 'OT 100' THEN ar.OvertimeHours ELSE 0 END) AS [OT 100],
+//         SUM(CASE WHEN ar.OTType = 'OT 30' THEN ar.OvertimeHours ELSE 0 END) AS [OT 30],
+//         SUM(CASE WHEN ar.OTType IN ('OT 130', 'OT 135', 'OT 100', 'OT 30') THEN ar.OvertimeHours ELSE 0 END) AS TotalOvertime
+//     FROM allRecords ar
+//     LEFT JOIN [UE database]..vw_Employees e ON ar.EmployeeCode = e.CODE
+//     WHERE ar.OTType IS NOT NULL
+//       ${classCode ? "AND e.EMP_CLASS_CODE = ?" : ""}
+//     GROUP BY
+//         ar.EmployeeCode,
+//         ar.EmployeeName,
+//         e.EMP_CLASS_DESC,
+//         ar.Position,
+//         ar.Department,
+//         ar.DepartmentCode,
+//         e.HIRED
+//     ORDER BY ar.EmployeeName;
+//   `;
+
+//   const params = classCode
+//     ? [fromDate, toDate, fromDate, toDate, classCode]
+//     : [fromDate, toDate, fromDate, toDate];
+
+//   return await sqlHelper.query(query, params);
+// };
+
 const unpaidOvertime = async (fromDate, toDate, classCode) => {
   const query = `
     WITH smartNoteResolved AS (
@@ -462,13 +647,13 @@ const unpaidOvertime = async (fromDate, toDate, classCode) => {
             cal.TYPE AS CalendarType
         FROM hr..vw_OTStatus ot
         OUTER APPLY (
-            SELECT TOP 1 *
+            SELECT TOP 1 vm.NOTE
             FROM UERMATT..vw_SchedManual vm
             WHERE vm.EMPCODE = ot.code
               AND vm.DATE = CONVERT(DATE, ot.otTo)
         ) vm
         OUTER APPLY (
-            SELECT TOP 1 *
+            SELECT TOP 1 sp.DOFF1, sp.DOFF2
             FROM UERMATT..vw_SchedPermanent sp
             WHERE sp.EMPCODE = ot.code
         ) sp
@@ -477,108 +662,62 @@ const unpaidOvertime = async (fromDate, toDate, classCode) => {
             FROM [UE database]..jom_HRMS_Calendar c
             WHERE c.DATE = CONVERT(DATE, ot.otTo)
         ) cal
-      WHERE ot.statusCode IN (3,4,5,6,9)
-          AND (CONVERT(DATE, otFrom) >= ? AND CONVERT(DATE, otTo) <= ?)
+        WHERE ot.statusCode IN (3,4,5,6,9)
+          AND CONVERT(DATE, ot.otFrom) >= ?
+          AND CONVERT(DATE, ot.otTo) <= ?
     ),
     otComputed AS (
         SELECT *,
             CASE 
-                WHEN ResolvedNote = 'DAY OFF' 
-                    AND CalendarType IN (
-                        'SPECIAL NON-WORKING HOLIDAY', 
-                        'SPECIAL WORKING HOLIDAY', 
-                        'REGULAR HOLIDAY') THEN 'OT 130'
-                WHEN ResolvedNote = 'REST DAY' 
-                    AND CalendarType IN (
-                        'SPECIAL NON-WORKING HOLIDAY', 
-                        'SPECIAL WORKING HOLIDAY', 
-                        'REGULAR HOLIDAY') THEN 'OT 135'
-                WHEN ResolvedNote = 'DAY OFF' 
-                    AND CalendarType IS NULL THEN 'OT 130'
-                WHEN ResolvedNote = 'REST DAY' 
-                    AND CalendarType IS NULL THEN 'OT 135'
+                WHEN ResolvedNote = 'DAY OFF' AND CalendarType IN ('SPECIAL NON-WORKING HOLIDAY','SPECIAL WORKING HOLIDAY','REGULAR HOLIDAY') THEN 'OT 130'
+                WHEN ResolvedNote = 'REST DAY' AND CalendarType IN ('SPECIAL NON-WORKING HOLIDAY','SPECIAL WORKING HOLIDAY','REGULAR HOLIDAY') THEN 'OT 135'
+                WHEN ResolvedNote = 'DAY OFF'  AND CalendarType IS NULL THEN 'OT 130'
+                WHEN ResolvedNote = 'REST DAY' AND CalendarType IS NULL THEN 'OT 135'
                 WHEN ResolvedNote = CalendarType THEN 'OT 130'
-                WHEN ResolvedNote IS NULL THEN 'OT 130'
-                ELSE NULL
+                WHEN ResolvedNote IS NULL        THEN 'OT 130'
             END AS OTType
         FROM smartNoteResolved
     ),
     holidayDates AS (
         SELECT 
-            DATE,
-            NOTE,
-            TYPE,
+            DATE, NOTE, TYPE,
             CASE 
                 WHEN TYPE LIKE '%SPECIAL%' THEN 'OT 30'
                 WHEN TYPE = 'REGULAR HOLIDAY' THEN 'OT 100'
-                ELSE NULL
             END AS HolidayOTType
         FROM [UE database]..jom_HRMS_Calendar
         WHERE DATE >= ? AND DATE <= ?
           AND DELETED = 0
-          AND TYPE IN ('SPECIAL NON-WORKING HOLIDAY', 'SPECIAL WORKING HOLIDAY', 'REGULAR HOLIDAY')
+          AND TYPE IN ('SPECIAL NON-WORKING HOLIDAY','SPECIAL WORKING HOLIDAY','REGULAR HOLIDAY')
     ),
     allEmployees AS (
-        SELECT DISTINCT 
-            EmployeeCode,
-            EmployeeName,
-            Position,
-            Department,
-            DepartmentCode
+        SELECT DISTINCT EmployeeCode, EmployeeName, Position, Department, DepartmentCode
         FROM smartNoteResolved
     ),
     holidayPay AS (
         SELECT 
-            ae.EmployeeCode,
-            ae.EmployeeName,
-            ae.Position,
-            ae.Department,
-            ae.DepartmentCode,
+            ae.EmployeeCode, ae.EmployeeName, ae.Position,
+            ae.Department, ae.DepartmentCode,
             hd.DATE AS OvertimeFrom,
             hd.DATE AS OvertimeTo,
             8.0 AS OvertimeHours,
-            'Holiday Pay' AS Status,
-            NULL AS PayrollPeriod,
-            hd.NOTE AS ResolvedNote,
-            hd.TYPE AS CalendarType,
             hd.HolidayOTType AS OTType
         FROM allEmployees ae
         CROSS JOIN holidayDates hd
         WHERE NOT EXISTS (
-            SELECT 1 
-            FROM otComputed ot 
+            SELECT 1 FROM otComputed ot 
             WHERE ot.EmployeeCode = ae.EmployeeCode 
               AND CONVERT(DATE, ot.OvertimeFrom) <= hd.DATE 
               AND CONVERT(DATE, ot.OvertimeTo) >= hd.DATE
         )
     ),
     allRecords AS (
-        SELECT 
-            EmployeeCode,
-            EmployeeName,
-            Position,
-            Department,
-            DepartmentCode,
-            OvertimeFrom,
-            OvertimeTo,
-            OvertimeHours,
-            OTType,
-            'Overtime' AS RecordType
+        SELECT EmployeeCode, EmployeeName, Position, Department, DepartmentCode,
+               OvertimeFrom, OvertimeTo, OvertimeHours, OTType
         FROM otComputed
-        
         UNION ALL
-        
-        SELECT 
-            EmployeeCode,
-            EmployeeName,
-            Position,
-            Department,
-            DepartmentCode,
-            OvertimeFrom,
-            OvertimeTo,
-            OvertimeHours,
-            OTType,
-            'Holiday Pay' AS RecordType
+        SELECT EmployeeCode, EmployeeName, Position, Department, DepartmentCode,
+               OvertimeFrom, OvertimeTo, OvertimeHours, OTType
         FROM holidayPay
     )
     SELECT 
@@ -588,34 +727,28 @@ const unpaidOvertime = async (fromDate, toDate, classCode) => {
         ar.Position,
         ar.Department,
         ar.DepartmentCode,
-        ROUND(CAST(DATEDIFF(MONTH, e.HIRED, GETDATE()) AS float) / 12.0, 2) AS ServiceLength,
+        ROUND(CAST(DATEDIFF(MONTH, e.HIRED, GETDATE()) AS FLOAT) / 12.0, 2) AS ServiceLength,
         STRING_AGG(
             '(' + CONVERT(VARCHAR(10), CONVERT(DATE, ar.OvertimeFrom), 23) + ' - ' + ar.OTType + ')', 
             ', '
-        ) AS Dates,
+        ) WITHIN GROUP (ORDER BY ar.OvertimeFrom) AS Dates,
         SUM(CASE WHEN ar.OTType = 'OT 130' THEN ar.OvertimeHours ELSE 0 END) AS [OT 130],
         SUM(CASE WHEN ar.OTType = 'OT 135' THEN ar.OvertimeHours ELSE 0 END) AS [OT 135],
         SUM(CASE WHEN ar.OTType = 'OT 100' THEN ar.OvertimeHours ELSE 0 END) AS [OT 100],
-        SUM(CASE WHEN ar.OTType = 'OT 30' THEN ar.OvertimeHours ELSE 0 END) AS [OT 30],
-        SUM(CASE WHEN ar.OTType IN ('OT 130', 'OT 135', 'OT 100', 'OT 30') THEN ar.OvertimeHours ELSE 0 END) AS TotalOvertime
+        SUM(CASE WHEN ar.OTType = 'OT 30'  THEN ar.OvertimeHours ELSE 0 END) AS [OT 30],
+        SUM(CASE WHEN ar.OTType IN ('OT 130','OT 135','OT 100','OT 30') THEN ar.OvertimeHours ELSE 0 END) AS TotalOvertime
     FROM allRecords ar
     LEFT JOIN [UE database]..vw_Employees e ON ar.EmployeeCode = e.CODE
     WHERE ar.OTType IS NOT NULL
-      ${classCode ? "AND e.EMP_CLASS_CODE = ?" : ""}
+      ${classCode ? `AND e.EMP_CLASS_CODE = '${classCode.trim()}'` : ""}
     GROUP BY 
-        ar.EmployeeCode,
-        ar.EmployeeName,
-        e.EMP_CLASS_DESC,
-        ar.Position,
-        ar.Department,
-        ar.DepartmentCode,
-        e.HIRED
+        ar.EmployeeCode, ar.EmployeeName, e.EMP_CLASS_DESC,
+        ar.Position, ar.Department, ar.DepartmentCode, e.HIRED
     ORDER BY ar.EmployeeName;
   `;
 
-  const params = classCode
-    ? [fromDate, toDate, fromDate, toDate, classCode]
-    : [fromDate, toDate, fromDate, toDate];
+  // Only 4 params now
+  const params = [fromDate, toDate, fromDate, toDate];
 
   return await sqlHelper.query(query, params);
 };

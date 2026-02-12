@@ -445,6 +445,10 @@ body::before {
   box-shadow: 0 0px 12px $grey-5;
 }
 
+.inputClass {
+  box-shadow: 0 0 3px $blue-10;
+}
+
 .custom-btn {
   min-width: 10.5px;
   min-height: 10.5px;

@@ -17,6 +17,7 @@ const selectDepartments = async function (conditions, args, options, txn) {
       readersEmailFormat,
       externalDeptCode,
       receivingModule,
+      allowExempt,
       active,
       createdBy,
       updatedBy,

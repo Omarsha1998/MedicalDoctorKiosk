@@ -4,7 +4,7 @@ const sqlHelper = require("../../../helpers/sql");
 
 const selectUsers = async function (conditions, args, options, txn) {
   try {
-    const payments = await sqlHelper.query(
+    const users = await sqlHelper.query(
       `SELECT
       ${util.empty(options.top) ? "" : `TOP(${options.top})`}
       code,
@@ -35,7 +35,7 @@ const selectUsers = async function (conditions, args, options, txn) {
       txn,
     );
 
-    return payments;
+    return users;
   } catch (error) {
     console.log(error);
     return error;

@@ -1,22 +1,22 @@
 const DutyModel = require("../models/dutyRosterModel");
 const sqlHelper = require("../../../helpers/sql");
 
-const getDepartment = async (req, res) => {
-  const employeeCode = req.user.employee_id;
-  const employeeGrouping = await DutyModel.checkEmployeeGrouping(employeeCode);
+// const getDepartment = async (req, res) => {
+//   const employeeCode = req.user.employee_id;
+//   const employeeGrouping = await DutyModel.checkEmployeeGrouping(employeeCode);
 
-  if (employeeGrouping && employeeGrouping.length > 0) {
-    return res.status(200).json(employeeGrouping);
-  }
+//   if (employeeGrouping && employeeGrouping.length > 0) {
+//     return res.status(200).json(employeeGrouping);
+//   }
 
-  const allDepartments = await DutyModel.getAllDepartment();
+//   const allDepartments = await DutyModel.getAllDepartment();
 
-  if (!allDepartments) {
-    return res.status(500).json(null);
-  }
+//   if (!allDepartments) {
+//     return res.status(500).json(null);
+//   }
 
-  return res.status(200).json(allDepartments);
-};
+//   return res.status(200).json(allDepartments);
+// };
 
 const getEmployees = async (req, res) => {
   const { deptCode } = req.query;
@@ -303,7 +303,7 @@ const setPermanentSched = async (req, res) => {
 };
 
 module.exports = {
-  getDepartment,
+  // getDepartment,
   getEmployees,
   getEmployeeDtr,
   setSchedule,

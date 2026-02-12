@@ -38,6 +38,12 @@ const router = Router();
 
 // ********************* GET ***************************
 
+//to get assigned sub department
+// router.get(
+//   "/subs-of-primary",
+//   validateAccessToken,
+//   assetsController.getAssignedSubDepts,
+// );
 //transfer log history of main asset
 router.get(
   "/asset-transferring-activity-log",

@@ -91,10 +91,20 @@ const getHiearchy = async (req, res) => {
   return res.status(200).json({ tree, rawData });
 };
 
+// const getDepartments = async (req, res) => {
+//   const request = await HierarchyModel.getDepartments(employee_id);
+//   if (!request) res.status(500).json(null);
+//   return res.status(200).json(request);
+// };
+
 const getDepartments = async (req, res) => {
-  const request = await HierarchyModel.getDepartments();
-  if (!request) res.status(500).json(null);
-  return res.status(200).json(request);
+  try {
+    const { employeeCode, deptCode } = req.query;
+    const request = await HierarchyModel.getDepartments(employeeCode, deptCode);
+    return res.status(200).json(request);
+  } catch (error) {
+    return res.status(500).json(null);
+  }
 };
 
 const checkDeptData = async (req, res) => {

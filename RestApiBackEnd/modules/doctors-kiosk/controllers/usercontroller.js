@@ -4,7 +4,6 @@ const { createClient } = require("redis");
 const login = async (req, res) => {
   try {
     const { secretaryCode, password } = req.body;
-
     if (!secretaryCode || !password) {
       return res
         .status(422)

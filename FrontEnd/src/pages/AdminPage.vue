@@ -10,11 +10,12 @@
                   <q-input
                     dense
                     v-model="searchText"
-                    class="q-mb-sm"
+                    class="q-mb-sm inputClass"
                     input-debounce="0"
                     label="Secretary Name"
                     label-color="blue-10"
                     outlined
+                    standout
                     clearable
                     behavior="menu"
                     fill-input
@@ -72,7 +73,26 @@
               </div>
 
               <div v-else>
-                <div class="column q-pb-xs q-pr-sm q-pl-sm">
+                <div
+                  class="virtual-scroll q-pr-sm q-pl-sm q-pt-sm"
+                  style="height: 150px; overflow-y: auto"
+                >
+                  <div
+                    class="row q-pb-sm"
+                    v-for="doctor in secretary.doctorsAssignment"
+                    :key="doctor.doctorCode"
+                  >
+                    <q-btn
+                      outline
+                      dense
+                      class="full-width bg-white text-primary"
+                    >
+                      {{ doctor.doctorName }}
+                    </q-btn>
+                  </div>
+                </div>
+
+                <!-- <div class="virtual-scroll q-pb-xs q-pr-sm q-pl-sm">
                   <div
                     v-for="doctor in secretary.doctorsAssignment.slice(0, 3)"
                     :key="doctor.doctorCode"
@@ -86,7 +106,7 @@
                       {{ doctor.doctorName }}
                     </q-btn>
                   </div>
-                </div>
+                </div> -->
               </div>
 
               <q-card-actions class="q-mt-auto">
@@ -97,6 +117,18 @@
                   label="More Info"
                   class="full-width"
                   @click="showMoreAction(secretary)"
+                />
+                <q-btn
+                  push
+                  label="Reset Password"
+                  class="bg-yellow-10 text-white full-width q-mt-xs"
+                  @click="forgotPassword(secretary)"
+                />
+                <q-btn
+                  push
+                  label="Remove Secretary"
+                  class="bg-negative text-white full-width q-mt-xs"
+                  @click="removeSecretary(secretary)"
                 />
               </q-card-actions>
             </q-card>
@@ -180,11 +212,12 @@
                 </template>
               </q-table>
             </q-card-section>
+
             <div class="q-pr-md q-pb-sm text-right">
               <q-btn
                 class="bg-positive text-white"
                 push
-                label="Add "
+                label="Add"
                 @click="getDoctors"
               />
             </div>
@@ -201,7 +234,9 @@
               class="bg-blue-10 row items-center q-pa-md"
               style="position: sticky; top: 0; z-index: 1; min-width: 400px"
             >
-              <div class="text-white text-bold">Add</div>
+              <div class="text-white text-bold">
+                {{ addNew ? "Add Secretary" : "Add Doctors" }}
+              </div>
 
               <q-space></q-space>
               <q-btn
@@ -327,6 +362,213 @@
             </div>
           </q-card>
         </q-dialog>
+
+        <!-- Add this dialog after your existing dialogs -->
+        <!-- Result Dialog -->
+        <q-dialog v-model="resultDialog" persistent>
+          <q-card class="bg-grey-2" style="min-width: 600px">
+            <q-card-section
+              class="row items-center q-pa-md"
+              :class="addNew ? 'bg-positive' : 'bg-yellow-10'"
+              style="position: sticky; top: 0; z-index: 1"
+            >
+              <q-icon
+                :name="addNew ? 'check_circle' : 'lock_reset'"
+                size="md"
+                class="text-white q-mr-sm"
+              />
+              <div class="text-white text-bold text-h6">
+                {{
+                  addNew
+                    ? "Secretary Added Successfully"
+                    : "Password Reset Successfully"
+                }}
+              </div>
+              <q-space></q-space>
+              <q-btn
+                :class="
+                  addNew ? 'bg-white text-positive' : 'bg-white text-yellow-10'
+                "
+                icon="close"
+                push
+                round
+                dense
+                @click="closeResultDialog"
+              ></q-btn>
+            </q-card-section>
+
+            <q-card-section v-if="resultData">
+              <div class="q-pa-xs">
+                <div class="text-h6 text-blue-10 q-mb-md">
+                  Secretary Information:
+                </div>
+
+                <q-list bordered separator class="rounded-borders">
+                  <!-- Secretary Name -->
+                  <q-item>
+                    <q-item-section>
+                      <q-item-label class="text-bold"
+                        >Secretary Name:</q-item-label
+                      >
+                      <q-item-label class="text-grey-8 text-subtitle1">
+                        {{
+                          addNew
+                            ? resultData.results[0]?.data?.secretaryName
+                            : resultData.results?.secretaryName
+                        }}
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+
+                  <!-- Secretary Code -->
+                  <q-item>
+                    <q-item-section>
+                      <q-item-label class="text-bold"
+                        >Secretary Code:</q-item-label
+                      >
+                      <q-item-label class="text-grey-8 text-subtitle1">
+                        {{
+                          addNew
+                            ? resultData.results[0]?.data?.secretaryCode
+                            : resultData.results?.secretaryCode
+                        }}
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+
+                  <!-- Password -->
+                  <q-item>
+                    <q-item-section>
+                      <q-item-label class="text-bold">{{
+                        addNew ? "Password:" : "New Password:"
+                      }}</q-item-label>
+                      <q-item-label
+                        caption
+                        class="text-subtitle1 text-bold text-orange-8"
+                      >
+                        {{
+                          addNew
+                            ? resultData.results[0]?.data?.plainPassword
+                            : resultData.results?.plainPassword
+                        }}
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+
+                  <!-- Contact Number (only for reset) -->
+                  <q-item v-if="!addNew">
+                    <q-item-section>
+                      <q-item-label class="text-bold"
+                        >Contact Number:</q-item-label
+                      >
+                      <q-item-label class="text-grey-8 text-subtitle1">
+                        {{ resultData.results?.contactNumber }}
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+
+                  <!-- Doctors Assigned (only for add new) -->
+                  <q-item
+                    v-if="
+                      addNew &&
+                      resultData.results &&
+                      resultData.results.length > 1
+                    "
+                  >
+                    <q-item-section>
+                      <q-item-label class="text-bold"
+                        >Doctors Assigned:</q-item-label
+                      >
+                      <q-item-label
+                        v-for="(result, index) in resultData.results.slice(1)"
+                        :key="index"
+                        class="text-grey-8 text-subtitle1"
+                      >
+                        • {{ result.message }}
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+
+                <div class="q-mt-md q-pa-sm bg-orange-1 rounded-borders">
+                  <q-icon name="warning" color="orange-8" class="q-mr-sm" />
+                  <span class="text-orange-8 text-bold">
+                    Please save this password! It will not be shown again.
+                  </span>
+                </div>
+              </div>
+            </q-card-section>
+
+            <q-card-actions align="right" class="q-pa-md">
+              <q-btn
+                push
+                label="Close"
+                color="negative"
+                @click="closeResultDialog"
+              />
+            </q-card-actions>
+          </q-card>
+        </q-dialog>
+
+        <!-- Password Reset Dialog -->
+        <q-dialog v-model="passwordResetDialog" persistent>
+          <q-card class="bg-grey-2" style="min-width: 500px">
+            <q-card-section class="bg-yellow-10 row items-center q-pa-md">
+              <q-icon name="lock_reset" size="md" class="text-white q-mr-sm" />
+              <div class="text-white text-bold text-h6">
+                Verify Secretary Information
+              </div>
+              <q-space></q-space>
+              <q-btn
+                class="bg-white text-yellow-10"
+                icon="close"
+                push
+                round
+                dense
+                @click="closePasswordResetDialog"
+              ></q-btn>
+            </q-card-section>
+
+            <q-card-section v-if="passwordResetSecretary">
+              <div class="q-mb-md">
+                <div class="text-subtitle1 text-bold">
+                  Secretary: {{ passwordResetSecretary.secretaryName }}
+                </div>
+              </div>
+
+              <q-input
+                v-model="passwordResetSecretaryCode"
+                label="Enter Secretary Code to Confirm"
+                label-color="blue-10"
+                outlined
+                class="q-mb-md"
+              />
+
+              <q-input
+                v-model="passwordResetContactNumber"
+                label="Contact Number"
+                label-color="blue-10"
+                outlined
+              />
+            </q-card-section>
+
+            <q-card-actions align="right" class="q-pa-md">
+              <q-btn
+                push
+                label="Cancel"
+                color="negative"
+                @click="closePasswordResetDialog"
+              />
+              <q-btn
+                push
+                label="Reset Password"
+                color="yellow-10"
+                class="text-white"
+                @click="submitPasswordReset"
+              />
+            </q-card-actions>
+          </q-card>
+        </q-dialog>
       </div>
     </q-page-container>
   </q-layout>
@@ -376,6 +618,12 @@ export default {
       inputtedSecretaryCode: null,
       inputtedSecretaryNickname: null,
       inputtedSecretaryContactNumber: null,
+      resultDialog: false,
+      resultData: null,
+      passwordResetDialog: false,
+      passwordResetSecretaryCode: null,
+      passwordResetContactNumber: null,
+      passwordResetSecretary: null,
     };
   },
 
@@ -392,18 +640,39 @@ export default {
       if (this.$q.screen.gt.xs) return 2;
     },
 
+    // computedSecretary() {
+    //   if (Array.isArray(this.secretaryItems)) {
+    //     const query = this.searchText.toLowerCase();
+    //     return this.secretaryItems.filter((row) => {
+    //       return (
+    //         (row.secretaryName &&
+    //           row.secretaryName.toString().toLowerCase().includes(query)) ||
+    //         (row.secretaryCode &&
+    //           row.secretaryCode.toString().toLowerCase().includes(query))
+    //       );
+    //     });
+    //   }
+    // },
+
     computedSecretary() {
-      if (Array.isArray(this.secretaryItems)) {
-        const query = this.searchText.toLowerCase();
-        return this.secretaryItems.filter((row) => {
-          return (
-            (row.secretaryName &&
-              row.secretaryName.toString().toLowerCase().includes(query)) ||
-            (row.secretaryCode &&
-              row.secretaryCode.toString().toLowerCase().includes(query))
-          );
-        });
+      if (!Array.isArray(this.secretaryItems)) {
+        return []; // Return empty array if secretaryItems is not an array
       }
+
+      // If search is empty or cleared, return all items
+      if (!this.searchText || this.searchText.trim() === "") {
+        return this.secretaryItems;
+      }
+
+      const query = this.searchText.toLowerCase().trim();
+      return this.secretaryItems.filter((row) => {
+        return (
+          (row.secretaryName &&
+            row.secretaryName.toString().toLowerCase().includes(query)) ||
+          (row.secretaryCode &&
+            row.secretaryCode.toString().toLowerCase().includes(query))
+        );
+      });
     },
   },
 
@@ -588,10 +857,10 @@ export default {
         if (this.addNew === true) {
           data = {
             doctorCodes: this.selectedDoctors,
-            secretaryName: this.inputtedSecretaryName,
-            secretaryCode: this.inputtedSecretaryCode,
-            secretaryNickname: this.inputtedSecretaryNickname,
-            secretaryContactNumber: this.inputtedSecretaryContactNumber,
+            secretaryName: this.inputtedSecretaryName.trim(),
+            secretaryCode: this.inputtedSecretaryCode.trim(),
+            secretaryNickname: this.inputtedSecretaryNickname.trim(),
+            secretaryContactNumber: this.inputtedSecretaryContactNumber.trim(),
             addNew: this.addNew,
           };
         } else {
@@ -612,7 +881,24 @@ export default {
           spinnerSize: "7em",
         });
 
-        await this.$store.dispatch("doctorsModule/addDoctorAssignment", data);
+        const result = await this.$store.dispatch(
+          "doctorsModule/addDoctorAssignment",
+          data
+        );
+        if (result.status === 200) {
+          this.resultData = result.data;
+          this.resultDialog = true;
+        } else {
+          this.$q.notify({
+            color: "positive",
+            position: "center",
+            message: `Doctor assignment add successfully`,
+            icon: "check",
+            iconColor: "white",
+            timeout: 1000,
+            progress: true,
+          });
+        }
         await this.getAllSecretaryWithDoctors();
         this.selectedDialog = false;
         this.$q.loading.hide();
@@ -657,6 +943,195 @@ export default {
           timeout: 1500,
           progress: true,
         });
+        console.error(error);
+      }
+    },
+
+    closeResultDialog() {
+      this.resultDialog = false;
+      this.resultData = null;
+    },
+
+    async forgotPassword(secretary) {
+      try {
+        this.$q
+          .dialog({
+            title: "Reset Password Confirmation",
+            message: `Reset password for ${secretary.secretaryName} (${secretary.secretaryCode})?`,
+            cancel: true,
+            persistent: true,
+            ok: {
+              push: true,
+              color: "yellow-10",
+              label: "Proceed",
+              class: "text-subtitle1",
+            },
+            cancel: {
+              push: true,
+              color: "negative",
+              label: "Cancel",
+              class: "text-subtitle1",
+            },
+          })
+          .onOk(() => {
+            this.openPasswordResetDialog(secretary);
+          });
+      } catch (error) {
+        console.error(error);
+      }
+    },
+
+    openPasswordResetDialog(secretary) {
+      this.passwordResetSecretary = secretary;
+      this.passwordResetDialog = true;
+    },
+
+    async submitPasswordReset() {
+      if (
+        !this.passwordResetSecretaryCode ||
+        !this.passwordResetContactNumber
+      ) {
+        this.$q.notify({
+          color: "negative",
+          position: "center",
+          message: "Please fill in all fields",
+          icon: "report_problem",
+          iconColor: "white",
+          timeout: 1500,
+          progress: true,
+        });
+        return;
+      }
+
+      if (
+        this.passwordResetSecretaryCode !==
+        this.passwordResetSecretary.secretaryCode
+      ) {
+        this.$q.notify({
+          color: "negative",
+          position: "center",
+          message: "Secretary Code does not match!",
+          icon: "report_problem",
+          iconColor: "white",
+          timeout: 1500,
+          progress: true,
+        });
+        return;
+      }
+
+      try {
+        helperMethods.disablePointerEvents();
+
+        const data = {
+          secretaryCode: this.passwordResetSecretary.secretaryCode.trim(),
+          secretaryName: this.passwordResetSecretary.secretaryName.trim(),
+          contactNumber: this.passwordResetContactNumber,
+        };
+
+        const result = await this.$store.dispatch(
+          "doctorsModule/resetSecretaryPassword",
+          data
+        );
+
+        if (result.status === 200) {
+          this.addNew = false;
+          this.resultData = result.data;
+          this.resultDialog = true;
+        }
+
+        this.$q.notify({
+          color: "positive",
+          position: "center",
+          message: "Password reset successfully",
+          icon: "check",
+          iconColor: "white",
+          timeout: 1500,
+          progress: true,
+        });
+
+        this.closePasswordResetDialog();
+        helperMethods.enablePointerEvents();
+      } catch (error) {
+        helperMethods.enablePointerEvents();
+        this.$q.notify({
+          color: "negative",
+          position: "center",
+          message: "Error resetting password",
+          icon: "report_problem",
+          iconColor: "white",
+          timeout: 1500,
+          progress: true,
+        });
+        console.error(error);
+      }
+    },
+
+    closePasswordResetDialog() {
+      this.passwordResetDialog = false;
+      this.passwordResetSecretaryCode = null;
+      this.passwordResetContactNumber = null;
+      this.passwordResetSecretary = null;
+    },
+
+    async removeSecretary(secretary) {
+      try {
+        this.$q
+          .dialog({
+            title: "Remove Secretary",
+            message: `Are you sure you want to remove ${secretary.secretaryName} (${secretary.secretaryCode}) as Secretary? This action cannot be undone.`,
+            cancel: true,
+            persistent: true,
+            ok: {
+              push: true,
+              color: "negative",
+              label: "Remove",
+              class: "text-subtitle1",
+            },
+            cancel: {
+              push: true,
+              color: "primary",
+              label: "Cancel",
+              class: "text-subtitle1",
+            },
+          })
+          .onOk(async () => {
+            helperMethods.disablePointerEvents();
+
+            const data = {
+              secretaryCode: secretary.secretaryCode,
+              secretaryName: secretary.secretaryName,
+            };
+
+            try {
+              await this.$store.dispatch("doctorsModule/removeSecretary", data);
+
+              this.$q.notify({
+                color: "positive",
+                position: "center",
+                message: `${secretary.secretaryName} - (${secretary.secretaryCode}) removed successfully`,
+                icon: "check",
+                iconColor: "white",
+                timeout: 1500,
+                progress: true,
+              });
+
+              await this.getAllSecretaryWithDoctors();
+              helperMethods.enablePointerEvents();
+            } catch (error) {
+              helperMethods.enablePointerEvents();
+              this.$q.notify({
+                color: "negative",
+                position: "center",
+                message: "Error removing secretary",
+                icon: "report_problem",
+                iconColor: "white",
+                timeout: 1500,
+                progress: true,
+              });
+              console.error(error);
+            }
+          });
+      } catch (error) {
         console.error(error);
       }
     },

@@ -2035,7 +2035,6 @@ const cancelPending = async (req, res) => {
 
     const checkEmployeeToApprove =
       await Leave.checkEmployeeToApprove(employeeId);
-
     const lvl1DeptCodes = [];
     const lvl2DeptCodes = [];
     const userHasLevel1 = checkEmployeeToApprove.some(

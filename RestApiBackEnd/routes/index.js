@@ -75,10 +75,17 @@ router.use(
   require("../modules/hospital-dashboard/routes/routes.js"),
 );
 router.use("/dragonpay", require("../modules/dragonpay/routes/route.js"));
+
 router.use(
   "/uerm-infirmary",
   require("../modules/uerm-infirmary/routes/route.js"),
 );
+
+router.use(
+  "/uerm-infirmary-v2",
+  require("../modules/uerm-infirmary-v2/routes/index.js"),
+);
+
 router.use("/events-hub", require("../modules/events-hub/routes/route.js"));
 router.use("/ediagnostics", require("../modules/ediagnostics/routes/route.js"));
 router.use(

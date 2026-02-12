@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable no-console */
 const util = require("../../../helpers/util.js");
 const tools = require("../../../helpers/tools.js");
@@ -113,7 +114,7 @@ const postPatientResult = async function (req, res) {
       let currentWorkFlow = [];
       if (payload.length > 0) {
         const existTestResult = await patientresultModel.selectPatientResults(
-          "and testOrderCode = ? and testCode = ?",
+          "and testOrderCode = ? and b.testCode = ?",
           [
             payload[0].patientResults.testOrderCode,
             payload[0].patientResults.testCode,

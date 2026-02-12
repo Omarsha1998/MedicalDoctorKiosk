@@ -15,17 +15,17 @@ const checkEmployeeGrouping = async (employeeCode) => {
   );
 };
 
-const getAllDepartment = async () => {
-  return await sqlHelper.query(
-    `SELECT 
-      CODE deptCode, DESCRIPTION deptDescription 
-    FROM 
-      UERMMMC..vw_Departments
-    ORDER BY
-      DESCRIPTION ASC
-    `,
-  );
-};
+// const getAllDepartment = async () => {
+//   return await sqlHelper.query(
+//     `SELECT
+//       CODE deptCode, DESCRIPTION deptDescription
+//     FROM
+//       UERMMMC..vw_Departments
+//     ORDER BY
+//       DESCRIPTION ASC
+//     `,
+//   );
+// };
 
 const getEmployees = async (deptCode) => {
   return await sqlHelper.query(
@@ -135,7 +135,7 @@ const insertPermanentSched = async (item, txn, creationDateTimeField) => {
 };
 
 module.exports = {
-  getAllDepartment,
+  // getAllDepartment,
   checkEmployeeGrouping,
   getEmployees,
   getEmployeeDtr,

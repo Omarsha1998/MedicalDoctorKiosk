@@ -293,11 +293,19 @@ router.put(
   admissionController.updateApplicantInfo,
 );
 
+
+router.put(
+  "/applicant-application-fee/:code",
+  validateAccessToken,
+  admissionController.putApplicationFee,
+);
+
 router.put(
   "/applicant-appointment/:code",
   validateAccessToken,
   interviewerController.putApplicantAppointment,
 );
+
 
 router.put(
   "/tag-application/:code",

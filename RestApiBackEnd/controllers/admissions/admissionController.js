@@ -3206,6 +3206,35 @@ const putException = async function (req, res) {
   return res.json(returnValue);
 };
 
+const putApplicationFee = async function (req, res) {
+  if (util.empty(req.body))
+    return res
+      .status(400)
+      .json({ error: "`parameters` in body are required." });
+
+  const returnValue = await sqlHelper.transact(async (txn) => {
+    try {
+      const code = req.params.code;
+      const applicationInfo = req.body;
+
+      return await applicantsModel.updateApplicantsInfo(
+        applicationInfo,
+        { app_number: code },
+        "ApplicationInfo",
+        txn,
+      );
+    } catch (error) {
+      console.log(error);
+      return { error: error };
+    }
+  });
+
+  if (returnValue.error !== undefined) {
+    return res.status(500).json({ error: `${returnValue.error}` });
+  }
+  return res.json(returnValue);
+};
+
 module.exports = {
   checkApplicants,
   addBatch,
@@ -3269,4 +3298,5 @@ module.exports = {
   getNmatDates,
   uploadDocuments,
   putException,
+  putApplicationFee,
 };

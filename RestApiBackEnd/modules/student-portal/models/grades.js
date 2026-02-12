@@ -161,6 +161,7 @@ const selectGradeData = async function (conditions, txn) {
             mgd.id gradeID, 
             mgd.semester,
             mgd.term,
+            mgd.courseId,
             mgd.subjectCode,
             mgd.subject,
             mgd.reexam,

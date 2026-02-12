@@ -21,7 +21,8 @@ const getTestOrders = async function (req, res) {
 
   const returnValue = await sqlHelper.transact(async (txn) => {
     try {
-      const { deptCode, fromDate, toDate, dateFilter, processing } = req.query;
+      const { deptCode, fromDate, toDate, dateFilter, processing, code } =
+        req.query;
       let conditions = "";
       let args = [];
       let testOrders = [];
@@ -50,9 +51,7 @@ const getTestOrders = async function (req, res) {
         conditions = `
             and convert(date, ${dateFilter}) between ? and ?
             and t.DepartmentCode = ?`;
-        // conditions = `
-        //     and ${dateFilter} >= ? and ${dateFilter} <= ?
-        //     and t.DepartmentCode = ?`;
+
         args = [fromDate, toDate, deptCode];
         orderCondition = {
           order: `c.patientType, ${dateFilter} asc`,
@@ -75,6 +74,25 @@ const getTestOrders = async function (req, res) {
             txn,
           );
         }
+      }
+
+      if (code) {
+        conditions = `
+            and t0.code = ?`;
+
+        args = [code];
+        orderCondition = {
+          order: ``,
+          top: "",
+          processing: processing,
+        };
+
+        testOrders = await testOrderModel.selectTestOrderProcessing(
+          conditions,
+          args,
+          orderCondition,
+          txn,
+        );
       }
 
       return testOrders;
@@ -104,7 +122,12 @@ const postTestOrders = async function (req, res) {
         chargeId,
         shortDeptCode,
         versionSetId,
+        printoutVersionSetId,
         resultComponentTemplate,
+        testComponentTemplate,
+        requestingPhysician,
+        overrideRequestingPhysician,
+        exempt,
       } = req.body;
 
       const payloadToInsert = {
@@ -122,9 +145,16 @@ const postTestOrders = async function (req, res) {
         departmentCode: deptCode,
         testCode: testCode,
         transferRemarks: transferRemarks,
+        exempt: exempt === undefined ? false : exempt,
         status: "transferred",
+        requestingPhysician:
+          overrideRequestingPhysician !== undefined
+            ? requestingPhysician
+            : null,
         versionSetId: versionSetId,
+        printoutVersionSetId: printoutVersionSetId,
         resultComponent: resultComponentTemplate,
+        testComponentTemplate: testComponentTemplate,
         createdBy: util.currentUserToken(req).code,
         updatedBy: util.currentUserToken(req).code,
       };
@@ -134,6 +164,11 @@ const postTestOrders = async function (req, res) {
         "UERMResults..TestOrders",
         txn,
       );
+
+      if (exempt) {
+        // This is exempted do not proceed to inserting TestOrderWorkflows
+        return { testOrder: testOrder };
+      }
 
       let testOrderWorkFlow = {};
       if (Object.keys(testOrder).length > 0) {
@@ -189,6 +224,35 @@ const postTestOrders = async function (req, res) {
   return __handleTransactionResponse(returnValue, res);
 };
 
+const putTestOrders = async function (req, res) {
+  if (util.empty(req.body))
+    return res
+      .status(400)
+      .json({ error: "`parameters` in body are required." });
+
+  const returnValue = await sqlHelper.transact(async (txn) => {
+    const code = req.params.code;
+
+    try {
+      req.body.updatedBy = util.currentUserToken(req).code;
+
+      return await testOrderModel.updateToTable(
+        req.body,
+        {
+          code: code,
+        },
+        "UERMResults..TestOrders",
+        txn,
+      );
+    } catch (error) {
+      console.log(error);
+      return { error: error };
+    }
+  });
+
+  return __handleTransactionResponse(returnValue, res);
+};
+
 const getTestOrderWorkFlows = async function (req, res) {
   if (util.empty(req.query)) {
     return res.status(400).json({ error: "URL query is required." });
@@ -218,4 +282,5 @@ module.exports = {
   getTestOrders,
   getTestOrderWorkFlows,
   postTestOrders,
+  putTestOrders,
 };

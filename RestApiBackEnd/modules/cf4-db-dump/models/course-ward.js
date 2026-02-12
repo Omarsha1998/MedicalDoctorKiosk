@@ -1,5 +1,11 @@
 const db = require("../../../helpers/sql.js");
-const { buildHashTable, sliceObj } = require("../../../helpers/util.js");
+
+const {
+  buildHashTable,
+  sliceObj,
+  formatToEnglishStr,
+} = require("../../../helpers/util.js");
+
 const tableName = "EasyClaimsOffline..courseWard";
 
 const columns = [
@@ -55,12 +61,18 @@ module.exports = {
 
     return val.map((e) => {
       return e.reduce((a, v) => {
-        if (v.code === "Date") {
+        if (v?.code === "Date") {
           a.dateAction = new Date(v.value);
         }
 
-        if (v.code === "Doctor's Order") {
-          a.doctorsAction = v.value.toUpperCase();
+        if (v?.code === "Doctor's Order") {
+          // a.doctorsAction =
+          //   v.value?.replace(/[^a-zA-Z0-9., \n]/g, " ")?.toUpperCase() || "";
+
+          a.doctorsAction =
+            formatToEnglishStr(v.value)
+              ?.replace(/[/():;%#]/g, " ")
+              ?.toUpperCase() || "";
         }
 
         return a;

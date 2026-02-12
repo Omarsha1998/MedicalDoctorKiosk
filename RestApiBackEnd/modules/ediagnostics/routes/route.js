@@ -7,7 +7,9 @@ const departmentsController = require("../controllers/departmentsController");
 const testsController = require("../controllers/testsController");
 const testWorkflowsController = require("../controllers/testWorkflowsController");
 const patientResultsController = require("../controllers/patientResultsController");
+const versionSetsController = require("../controllers/versionSetsController");
 const pdfController = require("../controllers/pdfController");
+const pxPortalController = require("../controllers/pxPortalController");
 
 const { validateAccessToken } = require("../../../helpers/crypto");
 
@@ -44,6 +46,12 @@ router.get(
 );
 
 router.get(
+  "/test-templates",
+  validateAccessToken,
+  testsController.getTestTemplates,
+);
+
+router.get(
   "/test-workflows",
   validateAccessToken,
   testWorkflowsController.getTestWorkFlows,
@@ -59,6 +67,24 @@ router.get(
   "/patient-result-file",
   validateAccessToken,
   patientResultsController.getPatientResultValueFile,
+);
+
+router.get(
+  "/version-sets",
+  validateAccessToken,
+  versionSetsController.getVersionSets,
+);
+
+router.get(
+  "/px-portal/patient-result",
+  validateAccessToken,
+  pxPortalController.getPatientResult,
+);
+
+router.get(
+  "/px-portal/patient-result-file",
+  validateAccessToken,
+  pxPortalController.getPatientResultValueFile,
 );
 
 // POST REQUESTS
@@ -80,12 +106,17 @@ router.post(
   patientResultsController.postPatientResultFile,
 );
 
-router.post(
-  "/test-pdf",
-  // express.text({ type: "text/html" }),
-  // validateAccessToken,
-  pdfController.generatePDF,
-);
+// router.post(
+//   "/patient-result-file",
+//   patientResultsController.postPatientResultFile,
+// );
+
+// router.post(
+//   "/test-pdf",
+//   // express.text({ type: "text/html" }),
+//   // validateAccessToken,
+//   pdfController.generatePDF,
+// );
 
 router.post(
   "/patient-result-printout",
@@ -99,8 +130,21 @@ router.post(
   patientResultsController.sendNotification,
 );
 
+router.post("/px-portal-results/", pxPortalController.generateDynamicPDF);
+
+router.post("/px-portal-auth-token/", pxPortalController.setPatientAuthToken);
+
+router.post(
+  "/px-portal-inauth-token/",
+  pxPortalController.unsetPatientAuthToken,
+);
+
 // PUT REQUESTS
-// router.put("/users/:code", validateAccessToken, userController.updateUser);
+router.put(
+  "/charges/:code",
+  validateAccessToken,
+  testOrdersController.putTestOrders,
+);
 
 // router.put("/update", userController.updateUser);
 

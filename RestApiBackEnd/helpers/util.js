@@ -52,6 +52,17 @@ function decrypt(string) {
   return decrypted;
 }
 
+const pwFromBirthDate = (date) => {
+  if (!date) {
+    throw new Error("`date` is required.");
+  }
+
+  const birthYear = String(date.getFullYear());
+  const birthMonth = String(date.getMonth() + 1).padStart(2, "0");
+  const birthDay = String(date.getDate()).padStart(2, "0");
+  return `${birthMonth}/${birthDay}/${birthYear}`;
+};
+
 async function getTokenSMS() {
   const data = JSON.stringify({
     username: process.env.SMART_USERNAME,
@@ -156,7 +167,7 @@ const sendTextMessage = async (recipient, message) => {
 const sendEmail = async (email) => {
   if (process.env.DEV) {
     // eslint-disable-next-line no-console
-    console.log(`Sending email to ${email.email}...`);
+    console.log(`Sending email to ${email.address || email.email}...`);
     return;
   }
 
@@ -167,21 +178,21 @@ const sendEmail = async (email) => {
           CustomCampaign: "priority_notifications",
           Priority: 2,
           From: {
-            Email: email.senderEmail ?? "service-notification@uerm.edu.ph",
-            Name: email.senderName ?? "UERM Service Notification",
+            Email: email.senderEmail || "service-notification@uerm.edu.ph",
+            Name: email.senderName || "UERM Service Notification",
           },
           To: [
             {
-              Email: `${email.address ?? email.email}`,
-              Name: `${email.name}`,
+              Email: email.address || email.email,
+              Name: email.name,
             },
           ],
-          TemplateID: email.templateId ?? 4088864,
+          TemplateID: email.templateId || 4088864,
           TemplateLanguage: true,
-          Subject: `${email.subject}`,
+          Subject: email.subject,
           Variables: {
-            ehrHeader: `${email.header}`,
-            ehrContent: `${email.content}`,
+            ehrHeader: email.header,
+            ehrContent: email.content,
           },
           Attachments: email.attachments || [],
         },
@@ -1652,10 +1663,28 @@ const convertURLtoBase64 = async (
   }
 };
 
+// Example usage:
+// console.log(formatToEnglishStr("Déjà vu, naïve café, über, ç, ñ, İ"));
+
+const formatToEnglishStr = (str) => {
+  if (!str) {
+    return "";
+  }
+
+  // Normalize the string to NFD (Normalization Form Canonical Decomposition)
+  // This separates base characters from diacritical marks (accents, etc.)
+  const normalizedStr = str.normalize("NFD");
+
+  // Use a regular expression to remove all non-ASCII characters that are diacritical marks
+  // The regex /\p{Mn}/gu matches all Unicode Mark, Non-Spacing characters
+  return normalizedStr.replace(/\p{Mn}/gu, "");
+};
+
 module.exports = {
   getIp,
   randomString,
   pad,
+  pwFromBirthDate,
   encrypt,
   decrypt,
   getTokenSMS,
@@ -1759,4 +1788,5 @@ module.exports = {
   padValueWithLength,
   getDaysFromBirthdate,
   convertURLtoBase64,
+  formatToEnglishStr,
 };

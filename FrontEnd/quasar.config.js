@@ -53,7 +53,7 @@ module.exports = configure(function (/* ctx */) {
       transpileDependencies: ["quasar"],
 
       publicPath: "/md-link/",
-      // publicPath: "/wp-content/plugins/doctor-directory",
+      // publicPath: "/wp-content/uploads/doctors-directory",
 
       pluginOptions: {
         quasar: {

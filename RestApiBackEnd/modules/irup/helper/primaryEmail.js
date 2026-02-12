@@ -29,7 +29,7 @@ async function NotifyActionItemVL(
                 
                 Please take a moment to check the report by clicking the button below:
 
-                <a href="http://10.107.0.30:9000/irms-app/#/Login" target="_blank" 
+                <a href="https://local.uerm.edu.ph/irms-app/#/Login" target="_blank" 
                   style="display: block; width: fit-content; margin: 20px auto; 
                           padding: 20px 30px; background-color: #007BFF; 
                           color: white; text-decoration: none; border-radius: 5px;">
@@ -74,7 +74,7 @@ async function sendReturnActionEmail(
 
                 You may view the resubmitted details by clicking the button below:
 
-                <a href="http://10.107.0.30:9000/irms-app/#/Login" target="_blank" 
+                <a href="https://local.uerm.edu.ph/irms-app/#/Login" target="_blank" 
                   style="display: block; width: fit-content; margin: 20px auto; 
                   padding: 20px 30px; background-color: #007BFF; 
                   color: white; text-decoration: none; border-radius: 5px;">
@@ -118,7 +118,7 @@ async function NotifyRCAItem(
             
             Please take a moment to check the RCA details by clicking the button below:
 
-            <a href="http://10.107.0.30:9000/irms-app/#/Login" target="_blank" 
+            <a href="https://local.uerm.edu.ph/irms-app/#/Login" target="_blank" 
               style="display: block; width: fit-content; margin: 20px auto; 
                       padding: 20px 30px; background-color: #007BFF; 
                       color: white; text-decoration: none; border-radius: 5px;">
@@ -163,7 +163,7 @@ async function sendReturnRCAEmail(
 
             You may view the resubmitted RCA details by clicking the button below:
 
-            <a href="http://10.107.0.30:9000/irms-app/#/Login" target="_blank" 
+            <a href="https://local.uerm.edu.ph/irms-app/#/Login" target="_blank" 
               style="display: block; width: fit-content; margin: 20px auto; 
               padding: 20px 30px; background-color: #007BFF; 
               color: white; text-decoration: none; border-radius: 5px;">

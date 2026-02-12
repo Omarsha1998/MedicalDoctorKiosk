@@ -188,6 +188,7 @@ const getFloatingAppointments = async function (req, res) {
 };
 
 const putApplicantAppointment = async function (req, res) {
+  // console.log(req.body);
   if (util.empty(req.body))
     return res
       .status(400)
@@ -195,14 +196,13 @@ const putApplicantAppointment = async function (req, res) {
 
   const returnValue = await sqlHelper.transact(async (txn) => {
     try {
-      const code = req.params.code;
+      const admissionsEmail = "admission@uerm.edu.ph";
 
-      const applicantAppointments =
-        await interviewerModel.updateApplicantAppointment(
-          req.body,
-          { code: code },
-          txn,
-        );
+      const code = req.params.code;
+      const interviewDetails = req.body;
+      const reassigned = req.body.reassigned;
+
+      delete req.body.reassigned;
 
       const interviewerDetails = await interviewerModel.selectInterviewers(
         "and code = ?",
@@ -214,26 +214,43 @@ const putApplicantAppointment = async function (req, res) {
         txn,
       );
 
+      let applicantAppointments = [];
+
+      let gcalPayload = {};
+
       if (interviewerDetails.length > 0) {
         try {
-          await appHelper.transferGCalendar({
-            googleCalendarID: applicantAppointments.googleCalendarID,
-            googleCalendarEventID: applicantAppointments.googleCalendarEventID,
-            destination: interviewerDetails[0].email.includes("uerm.edu.ph")
-              ? interviewerDetails[0].email
-              : "admission@uerm.edu.ph", // LIVE
-          });
+          applicantAppointments =
+            await interviewerModel.updateApplicantAppointment(
+              {
+                assigned: interviewDetails.assigned,
+                interviewerId: interviewDetails.interviewerId,
+                googleCalendarId: interviewerDetails[0].email,
+              },
+              { code: code },
+              txn,
+            );
 
-          req.body.googleCalendarID = interviewerDetails[0].email.includes(
-            "uerm.edu.ph",
-          )
-            ? interviewerDetails[0].email
-            : "admission@uerm.edu.ph";
+          if (!reassigned) {
+            gcalPayload = {
+              googleCalendarID: admissionsEmail,
+              googleCalendarEventID:
+                applicantAppointments.googleCalendarEventID,
+              destination: interviewerDetails[0].email,
+            };
+          }
+
+          gcalPayload = {
+            googleCalendarID: interviewDetails.googleCalendarId,
+            googleCalendarEventID: applicantAppointments.googleCalendarEventID,
+            destination: interviewerDetails[0].email,
+          };
+
+          await appHelper.transferGCalendar(gcalPayload);
 
           const tokenBearerSMS = await util.getTokenSMS();
           const accessToken = tokenBearerSMS.accessToken;
-
-          const intervieweeContent = `Good day <strong>${interviewerDetails[0].firstName}</strong>, 
+          const intervieweeContent = `Good day <strong>${interviewerDetails[0].firstName}</strong>,
                                           <p>
                                           An applicant for interview was assigned to you, please see the details of the interview:
                                           </p>
@@ -245,18 +262,14 @@ const putApplicantAppointment = async function (req, res) {
                                             </ul>
                                           </p>
                                         `;
-
           // NOTIFY INTERVIEWEE //
-
           const intervieweeSMSMessage = {
             messageType: "sms",
             destination: interviewerDetails[0].mobileNumber,
             app: "UERM STUDENT ADMISSION - INTERVIEW",
-            text: `UERM ADMISSIONS ADVISORY\r\n\r\nAn applicant for interview was assigned to you. Please access the Interviewer Module.\r\n\r\n Thank you.`,
+            text: `UERM ADMISSIONS ADVISORY\r\n\r\nAn applicant for interview was assigned to you. Please access the Interviewer Module.\r\n\r\nThank you.`,
           };
-
           await tools.sendSMSInsertDB(accessToken, intervieweeSMSMessage);
-
           const intervieweeEmailContent = {
             emailSender: "admission@uerm.edu.ph",
             header: "UERM ADMISSIONS ADVISORY",
@@ -265,9 +278,29 @@ const putApplicantAppointment = async function (req, res) {
             email: interviewerDetails[0].email,
             name: `${interviewerDetails[0].fullName}`,
           };
-
           await util.sendEmail(intervieweeEmailContent);
+
           return applicantAppointments;
+        } catch (err) {
+          console.log(err);
+          throw err;
+        }
+      } else {
+        try {
+          await interviewerModel.updateApplicantAppointment(
+            {
+              assigned: interviewDetails.assigned,
+              interviewerId: "",
+              googleCalendarId: admissionsEmail,
+            },
+            { code: code },
+            txn,
+          );
+          await appHelper.transferGCalendar({
+            googleCalendarID: interviewDetails.googleCalendarId,
+            googleCalendarEventID: interviewDetails.googleCalendarEventId,
+            destination: admissionsEmail,
+          });
         } catch (err) {
           console.log(err);
           throw err;

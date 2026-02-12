@@ -90,8 +90,166 @@ const getPRDeptTracker = async function (payload) {
   return returnValue;
 };
 
+const getRRWarehouseDetailed = async function (payload) {
+  const returnValue = await sqlHelper.transact(async (txn) => {
+    try {
+      const conditions = `and convert(date, a.rrdate) between ? and ?`;
+
+      const analyticsValue = await analytics[payload.analyticsName](
+        conditions,
+        [payload.from, payload.to],
+        {
+          order: "a.rrno, a.rrdate, a.datecreated ",
+        },
+        txn,
+      );
+      return analyticsValue;
+    } catch (error) {
+      console.log(error);
+      return { error: error };
+    }
+  });
+  if (returnValue.error !== undefined) {
+    return returnValue.error;
+  }
+  return returnValue;
+};
+
+const getRRWarehouse = async function (payload) {
+  const returnValue = await sqlHelper.transact(async (txn) => {
+    try {
+      const conditions = `and convert(date, a.rrdate) between ? and ?`;
+
+      const analyticsValue = await analytics[payload.analyticsName](
+        conditions,
+        [payload.from, payload.to],
+        {
+          order: "a.rrno, a.rrdate, a.datecreated ",
+        },
+        txn,
+      );
+      return analyticsValue;
+    } catch (error) {
+      console.log(error);
+      return { error: error };
+    }
+  });
+  if (returnValue.error !== undefined) {
+    return returnValue.error;
+  }
+  return returnValue;
+};
+
+const getRRWarehouseCensus = async function (payload) {
+  const returnValue = await sqlHelper.transact(async (txn) => {
+    try {
+      const conditions = `and convert(date, a.rrdate) between ? and ?`;
+      const analyticsValue = await analytics[payload.analyticsName](
+        conditions,
+        [payload.from, payload.to],
+        {
+          order: "rrdate",
+        },
+        txn,
+      );
+      return analyticsValue;
+    } catch (error) {
+      console.log(error);
+      return { error: error };
+    }
+  });
+  if (returnValue.error !== undefined) {
+    return returnValue.error;
+  }
+  return returnValue;
+};
+
+const getRRWarehouseCensusPerDept = async function (payload) {
+  const returnValue = await sqlHelper.transact(async (txn) => {
+    try {
+      const conditions = ``;
+
+      const analyticsValue = await analytics[payload.analyticsName](
+        conditions,
+        [
+          `'${payload.from.replace(/\//g, "-")}'`,
+          `'${payload.to.replace(/\//g, "-")}'`,
+        ],
+        {},
+        txn,
+      );
+
+      return analyticsValue;
+    } catch (error) {
+      console.log(error);
+      return { error: error };
+    }
+  });
+  if (returnValue.error !== undefined) {
+    return returnValue.error;
+  }
+  return returnValue;
+};
+
+const getRRWarehouseDetailedCensus = async function (payload) {
+  const returnValue = await sqlHelper.transact(async (txn) => {
+    try {
+      const conditions = `and convert(date, a.rrdate) between ? and ?`;
+      const analyticsValue = await analytics[payload.analyticsName](
+        conditions,
+        [payload.from, payload.to],
+        {
+          order: "rrdate",
+        },
+        txn,
+      );
+      return analyticsValue;
+    } catch (error) {
+      console.log(error);
+      return { error: error };
+    }
+  });
+  if (returnValue.error !== undefined) {
+    return returnValue.error;
+  }
+  return returnValue;
+};
+
+const getRRWarehouseDetailedCensusPerDept = async function (payload) {
+  const returnValue = await sqlHelper.transact(async (txn) => {
+    try {
+      const conditions = ``;
+
+      const analyticsValue = await analytics[payload.analyticsName](
+        conditions,
+        [
+          `'${payload.from.replace(/\//g, "-")}'`,
+          `'${payload.to.replace(/\//g, "-")}'`,
+        ],
+        {},
+        txn,
+      );
+
+      return analyticsValue;
+    } catch (error) {
+      console.log(error);
+      return { error: error };
+    }
+  });
+  if (returnValue.error !== undefined) {
+    return returnValue.error;
+  }
+  return returnValue;
+};
+
 module.exports = {
   getPRWarehouseItems,
   getPRWarehouseTracker,
   getPRDeptTracker,
+  getRRWarehouse,
+  getRRWarehouseDetailed,
+  getRRWarehouseCensus,
+  getRRWarehouseCensusPerDept,
+  getRRWarehouseDetailedCensus,
+  getRRWarehouseDetailedCensusPerDept,
 };

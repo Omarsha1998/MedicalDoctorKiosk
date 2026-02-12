@@ -3,7 +3,9 @@ const { createClient } = require("redis");
 const __conns = {};
 
 const addConn = async (name) => {
-  if (!name) name = "default";
+  if (!name) {
+    name = "default";
+  }
 
   process.stdout.write(`Connecting to "${name}" REDIS server... `);
   const client = createClient();

@@ -27,7 +27,6 @@ const calculateTotalLeaveValue = async (
     `,
     [employeeCode, leavetype],
   );
-
   // const leaveLedgerQuery = `
   //     SELECT
   //         l.LeaveType,

@@ -442,16 +442,16 @@ const getDoctors = async ({
           dr.[MIDDLE NAME] middleName,
           dr.Suffix,
           dr.LIC,
-		  dr.[LIC EXP DATE] licenseExpirationDate,
+		      dr.[LIC EXP DATE] licenseExpirationDate,
           dr.PHIC,
-		  dr.[PHIC EXP DATE] philHealthExpirationDate,
+		      dr.[PHIC EXP DATE] philHealthExpirationDate,
           dr.CONTACTNOS,
           dr.DEPARTMENT,
           dr.SKED,
           dr.SCHED,
-		  TRIM(dr.TIN) tinNumber,
-		  TRIM(dr.MPN1) doctorMobile,
-		  TRIM(dr.MPN2) doctorMobile2,
+		      TRIM(dr.TIN) tinNumber,
+		      TRIM(dr.MPN1) doctorMobile,
+		      TRIM(dr.MPN2) doctorMobile2,
           dr.ROOM,
           dr.DOC_CLASS,
           dr.SERVICE_TYPE,
@@ -738,26 +738,47 @@ const insertDoctorAttendance = async (item, txn, creationDateTimeField) => {
   );
 };
 
-const updateDoctorAttendance = async (id, txn) => {
-  return await sqlHelper.query(
-    `UPDATE UERMMMC..DoctorAttendance
-    SET DateTimeOut = GETDATE()
-    WHERE Id = ?
-    `,
-    [id],
+// const updateDoctorAttendance = async (id, updatedBy, txn) => {
+//   return await sqlHelper.query(
+//     `UPDATE UERMMMC..DoctorAttendance
+//     SET DateTimeOut = GETDATE(), UpdatedBy = ?
+//     WHERE Id = ?
+//     `,
+//     [id],
+//     txn,
+//   );
+// };
+
+const updateDoctorAttendance = async (
+  item,
+  condition,
+  txn,
+  updateTimeField,
+) => {
+  return await sqlHelper.update(
+    "UERMMMC..DoctorAttendance",
+    item,
+    condition,
     txn,
+    updateTimeField,
   );
 };
 
-const getAllSecretary = async () => {
-  return await sqlHelper.query(
-    `SELECT *
-    FROM
-      UERMMMC..DoctorSecretaries
-    WHERE
-      IsActive = 1
-    `,
-  );
+const getAllSecretary = async (code = null) => {
+  let query = `
+    SELECT *
+    FROM UERMMMC..DoctorSecretaries
+    WHERE IsActive = 1
+  `;
+
+  const params = [];
+
+  if (code && code.trim() !== "") {
+    query += ` AND Code = ?`;
+    params.push(code);
+  }
+
+  return await sqlHelper.query(query, params);
 };
 
 const updateDoctorInformation = async (
@@ -793,7 +814,7 @@ const getAllSecretaryWithDoctors = async () => {
     FROM UERMMMC..DoctorSecretaryAssignments dsa
     LEFT JOIN UERMMMC..DoctorSecretaries ds ON dsa.SecretaryCode = ds.Code
     LEFT JOIN UERMMMC..DOCTORS d ON dsa.DoctorCode = d.EHR_CODE
-    WHERE (dsa.IsDeleted IS NULL OR dsa.IsDeleted = 0)
+    WHERE ds.IsActive = 1 AND (dsa.IsDeleted IS NULL OR dsa.IsDeleted = 0)
     GROUP BY dsa.Id, ds.Code, ds.Name, d.NAME, dsa.DoctorCode
     ORDER BY ds.Name ASC
     `,

@@ -55,6 +55,22 @@ const getDivisionEmail = async (Division) => {
   );
 };
 
+const getAreaAssignee = async (Division) => {
+  return await sqlHelper.query(
+    `
+    SELECT 
+      AA.AreaCode, 
+      E.FirstName,
+      E.UERMEmail,
+      CONCAT(LastName, ', ', FirstName, ' ', CASE WHEN MiddleName IS NOT NULL THEN LEFT(MiddleName, 1) + '.' ELSE '' END) AS FullName
+
+    FROM [IRUP].[dbo].[AreaAssignee] AA
+    LEFT JOIN [UE database]..Employee E	ON E.EmployeeCode = AA.EmployeeCode
+    WHERE AA.AreaCode = ? `,
+    [Division],
+  );
+};
+
 const incidentReport = async (payload, txn) => {
   try {
     return await sqlHelper.insert(`IRUP.dbo.IRDetails`, payload, txn);
@@ -120,6 +136,7 @@ module.exports = {
   getSubName,
   // getSubCategory,
   getDivision,
+  getAreaAssignee,
   incidentReport,
   getIncidentReport,
   getDivisionEmail,

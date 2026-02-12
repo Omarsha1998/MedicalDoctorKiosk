@@ -1,4 +1,4 @@
-const util = require("../../../helpers/util");
+// const util = require("../../../helpers/util");
 const sqlHelper = require("../../../helpers/sql");
 
 const selectOldStudents = async function (conditions, txn) {

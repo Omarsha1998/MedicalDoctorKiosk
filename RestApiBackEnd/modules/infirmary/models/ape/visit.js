@@ -506,13 +506,23 @@ const selectPxAndVisitViaVisitId = async (visitId, txn) => {
   return { visit, patient };
 };
 
-const _getAdditionalVisitExamDetails = (appConfig, row) => {
+const _getAdditionalVisitExamDetails = (appConfig, row, schoolYear) => {
   if (["LAB_CBC", "LAB_URI", "LAB_FCL"].includes(row.examCode)) {
+    // TEMPORARY BUG FIX. REMOVE AFTER PUTTING THE REAL SOLUTION.
+    if (schoolYear === 2024) {
+      return {
+        MEDTECH: "Comendador, Lous Ohsana P.",
+        PTHLGST: "Dy-Ledesma, Janelyn Alexis L.",
+      };
+    }
+
     return {
-      MEDTECH: row.completedBy,
-      PTHLGST: row.completedBy
-        ? `${appConfig.pathologistsMap[row.patientCampusCode]} MD`
-        : "",
+      // MEDTECH: row.completedBy,
+      // PTHLGST: appConfig.pathologistsMap[row.patientCampusCode]
+      //   ? `${appConfig.pathologistsMap[row.patientCampusCode]} MD`
+      //   : "",
+      MEDTECH: "Comendador, Lous Ohsana P.",
+      PTHLGST: "Villamayor, Carina P.",
     };
   }
 
@@ -591,7 +601,7 @@ const selectAllDetails = async (
         ved.ExamParamUnit unit,
         ved.ExamParamValue value,
         ved.ExamParamNormalRange normalRange,
-        CASE WHEN ve.AcceptedBy IS NULL THEN
+        CASE WHEN u.Id IS NULL THEN
           NULL
         ELSE
           ${db.fullName("u.FirstName", "u.MiddleName", "u.LastName", "u.ExtName")}
@@ -600,17 +610,15 @@ const selectAllDetails = async (
       FROM
         AnnualPhysicalExam..VisitExamDetails ved
         LEFT JOIN AnnualPhysicalExam..VisitExams ve ON ve.Id = ved.VisitExamId
-        /* LEFT JOIN AnnualPhysicalExam..Users u ON u.Code = ve.CompletedBy */
-        LEFT JOIN AnnualPhysicalExam..Users u ON u.Code = ve.AcceptedBy
+        LEFT JOIN AnnualPhysicalExam..Users u ON u.Code = ved.CreatedBy
         LEFT JOIN AnnualPhysicalExam..Visits v ON v.Id = ve.VisitId
         LEFT JOIN AnnualPhysicalExam..Patients p ON p.Id = v.PatientId
       WHERE
-        /* ve.DateTimeCompleted IS NOT NULL AND */
         ve.VisitId = ?;
     `,
     [visit.id],
     txn,
-    { camelized: false },
+    false,
   );
 
   const appConfig = await miscModel.selectConfig(txn);
@@ -627,7 +635,12 @@ const selectAllDetails = async (
       completedByRoleCode: e.completedByRoleCode,
     };
 
-    acc[e.visitId][e.examCode] = _getAdditionalVisitExamDetails(appConfig, e);
+    acc[e.visitId][e.examCode] = _getAdditionalVisitExamDetails(
+      appConfig,
+      e,
+      patientSchoolYear,
+    );
+
     return acc;
   }, {});
 
@@ -759,7 +772,7 @@ const validateVisitPhysician = (user, visit, txn) => {
 
 const upsertExamDetails = async (
   user,
-  creator,
+  doctor,
   visitId,
   identificationCode,
   year,
@@ -773,7 +786,7 @@ const upsertExamDetails = async (
   }
 
   const author = await (async () => {
-    if (!creator || !creator.code) {
+    if (!doctor || !doctor.code) {
       return user;
     }
 
@@ -787,9 +800,10 @@ const upsertExamDetails = async (
           FROM
             AnnualPhysicalExam..Users
           WHERE
-            Code = ?;
+            Active = 1
+            AND Code = ?;
         `,
-        [creator.code],
+        [doctor.code],
         txn,
         false,
       )
@@ -946,7 +960,7 @@ const insertVisitExamDetailsRaw = async (examDetailsRaw, txn) => {
 
     return { status: 200, body: null };
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     return error;
   }
 };

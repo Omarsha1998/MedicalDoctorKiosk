@@ -1,6 +1,6 @@
 const sqlHelper = require("../../../helpers/sql");
 
-const getACTHead = async (DeptCode) => {
+const getACTHead = async (EmployeeCode) => {
   return await sqlHelper.query(
     `
         SELECT 
@@ -24,15 +24,15 @@ const getACTHead = async (DeptCode) => {
             LEFT JOIN 
                 IRUP..IRSubjectName IRS ON IRD.SubjectCode = IRS.SubjectCode
             LEFT JOIN 
-                IRUP..DirectorUser DU ON IRI.PrimaryDept = DU.DeptCode
+              IRUP..IREmail IE ON IRI.PrimaryDept = IE.DeptCode
             WHERE 
                 IRD.QAStatus = '1'
                 AND IRS.SubjectCode != 'others' 
-                AND IRI.PrimaryDept = ?
+                AND IE.EmployeeCode = ?
                 AND IRD.RiskGrading IN (1, 2)
             ORDER BY
                 IRD.DateTimeCreated DESC;`,
-    [DeptCode],
+    [EmployeeCode],
   );
 };
 
@@ -62,8 +62,7 @@ const getACTUnderEmployee = async (DeptCode, EmployeeCode) => {
     LEFT JOIN 
         IRUP..IRSubjectName IRS 
         ON IRD.SubjectCode = IRS.SubjectCode
-    LEFT JOIN 
-        IRUP..IRRequestAccess IRA 
+    INNER JOIN IRUP..IRRequestAccess IRA 
         ON IRI.PrimaryDept = IRA.DeptCode
         AND IRA.DeptCode = ?
         AND IRA.EmployeeCode = ?
@@ -76,7 +75,7 @@ const getACTUnderEmployee = async (DeptCode, EmployeeCode) => {
   );
 };
 
-const getRCAHead = async (DeptCode) => {
+const getRCAHead = async (EmployeeCode) => {
   return await sqlHelper.query(
     `
         SELECT 
@@ -99,14 +98,16 @@ const getRCAHead = async (DeptCode) => {
         IRUP..IRReportableChildren IRE ON IRD.SubjectChilCode = IRE.SubjectChilCode
     LEFT JOIN 
         IRUP..IRSubjectName IRS ON IRD.SubjectCode = IRS.SubjectCode
+	LEFT JOIN 
+        IRUP..IREmail IE ON IRI.PrimaryDept = IE.DeptCode
     WHERE 
         (IRS.SubjectCode IS NULL OR IRS.SubjectCode != 'others')  -- Handle NULLs properly
         AND IRD.QAStatus = '1'
-        AND IRI.PrimaryDept = ?
+        AND IE.EmployeeCode = ?
         AND IRD.RiskGrading IN (3, 4, 5)
     ORDER BY 
         IRD.DateTimeCreated DESC;`,
-    [DeptCode],
+    [EmployeeCode],
   );
 };
 
@@ -125,27 +126,23 @@ const getRCAUnderEmployee = async (DeptCode, EmployeeCode) => {
         IRI.PrimaryDept,
         IRD.RiskGrading,
         IRD.QAStatus
-    FROM
-        IRUP..IRDetails IRD
-    LEFT JOIN 
-        IRUP..IRDeptInvolved IRI 
+    FROM IRUP..IRDetails IRD
+    LEFT JOIN IRUP..IRDeptInvolved IRI 
         ON IRD.IRNo = IRI.IRNo
-    LEFT JOIN 
-        IRUP..IRReportableChildren IRE 
+    LEFT JOIN IRUP..IRReportableChildren IRE 
         ON IRD.SubjectChilCode = IRE.SubjectChilCode
-    LEFT JOIN 
-        IRUP..IRSubjectName IRS 
+    LEFT JOIN IRUP..IRSubjectName IRS 
         ON IRD.SubjectCode = IRS.SubjectCode
-    LEFT JOIN 
-        IRUP..IRRequestAccess IRA 
+    INNER JOIN IRUP..IRRequestAccess IRA 
         ON IRI.PrimaryDept = IRA.DeptCode
         AND IRA.DeptCode = ?
         AND IRA.EmployeeCode = ?
     WHERE 
-        IRD.QAStatus = '1'
+        IRD.QAStatus = 1
         AND IRD.RiskGrading IN (3, 4, 5)
     ORDER BY 
-        IRD.DateTimeCreated DESC;`,
+        IRD.DateTimeCreated DESC;
+    `,
     [DeptCode, EmployeeCode],
   );
 };
@@ -177,8 +174,8 @@ const getselectActionItem = async (IRNo) => {
         ire.SubjectSpecificExam,
         ie.FullName AS PDName,
         ie.UERMEmail AS PDEmail,
-        us.FULLNAME AS QAName,
-        us.UERMEmail AS QAEmail,
+        CONCAT(e.LastName, ', ', e.FirstName, ' ', CASE WHEN e.MiddleName IS NOT NULL THEN LEFT(e.MiddleName, 1) + '.' ELSE '' END) AS QAName,
+        e.UERMEmail AS QAEmail,
         d.DateTimeCreated
 
       FROM
@@ -187,7 +184,7 @@ const getselectActionItem = async (IRNo) => {
       LEFT JOIN IRUP..IRSubjectName irs ON d.SubjectCode = irs.SubjectCode
       LEFT JOIN IRUP..IRReportableChildren ire ON d.SubjectChilCode = ire.SubjectChilCode
       LEFT JOIN IRUP..IREmail ie ON id.PrimaryDept = ie.DeptCode
-      LEFT JOIN IRUP..Users us ON id.CreatedBy = us.EmployeeCode
+      LEFT JOIN [UE database]..Employee e  ON id.CreatedBy = e.EmployeeCode
           WHERE id.IRNo = ?`,
     [IRNo],
   );

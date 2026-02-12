@@ -257,21 +257,55 @@ const getHiearchy = async () => {
   // );
 };
 
-const getDepartments = async () => {
-  return await sqlHelper.query(
-    `SELECT 
-      d.Code, 
-      COALESCE(os.Description, d.DESCRIPTION) deptDescription,
+// const getDepartments = async () => {
+//   return await sqlHelper.query(
+//     `SELECT
+//       d.Code,
+//       COALESCE(os.Description, d.DESCRIPTION) deptDescription,
+//       os.deleted
+//     FROM
+//       UERMMMC..vw_Departments d
+//     LEFT JOIN
+//       [UE database]..OrganizationalStructure os ON os.Code = d.CODE
+//     WHERE
+//       d.DESCRIPTION NOT LIKE 'INACTIVE%'
+//     ORDER BY deptDescription ASC
+//     `,
+//   );
+// };
+
+const getDepartments = async (employeeCode = null, deptCode = null) => {
+  let query = `
+    SELECT 
+      d.Code deptCode, 
+      COALESCE(os.Description, d.DESCRIPTION) AS deptDescription,
       os.deleted
     FROM 
       UERMMMC..vw_Departments d
     LEFT JOIN 
-      [UE database]..OrganizationalStructure os ON os.Code = d.CODE
+      [UE database]..OrganizationalStructure os 
+        ON os.Code = d.CODE
     WHERE 
       d.DESCRIPTION NOT LIKE 'INACTIVE%'
-    ORDER BY deptDescription ASC
-    `,
-  );
+  `;
+
+  const params = [];
+
+  if (employeeCode && deptCode !== "5040") {
+    query += `
+      AND d.Code IN (
+        SELECT DISTINCT DeptCode
+        FROM HR..Approvers
+        WHERE Code = ?
+          AND deleted != 1
+      )
+    `;
+    params.push(employeeCode);
+  }
+
+  query += ` ORDER BY deptDescription ASC`;
+
+  return await sqlHelper.query(query, params);
 };
 
 const checkDuplicate = async (department) => {

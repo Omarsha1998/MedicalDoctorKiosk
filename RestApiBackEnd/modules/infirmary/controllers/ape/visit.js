@@ -430,7 +430,7 @@ const saveExamDetails = async (req, res) => {
   const r = await db.transact(async (txn) => {
     return await visitModel.upsertExamDetails(
       req.user,
-      req.body.creator,
+      req.body.creator || null,
       visitId,
       identificationCode,
       year,

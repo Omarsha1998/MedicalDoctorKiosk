@@ -70,6 +70,38 @@ const get = async (req, res) => {
   res.json(r);
 };
 
+const getHeadDoctor = async (req, res) => {
+  if (!req.query || !req.query.specialtyCode) {
+    res.status(400).json("`specialtyCode` in URL query is required.");
+    return;
+  }
+
+  const result = await db.query(
+    `
+      SELECT TOP 1
+        code
+      FROM
+        AnnualPhysicalExam..Users
+      WHERE
+        RoleCode = ?
+        AND Active = 1
+        AND IsHead = 1
+      ORDER BY
+        Id DESC;
+    `,
+    [req.query.specialtyCode],
+    null,
+    false,
+  );
+
+  if (result?.error) {
+    res.status(500).json(null);
+    return;
+  }
+
+  res.json(result[0] || null);
+};
+
 const generateUserCode = async (roleCode, txn) => {
   const userCodePrefix = `UEINF${
     {
@@ -416,7 +448,7 @@ const renewAccessToken = async (req, res) => {
       return;
     }
   } catch (err) {
-    console.log(err);
+    // console.log(err);
     res.status(500).json(null);
   }
 
@@ -425,7 +457,7 @@ const renewAccessToken = async (req, res) => {
   try {
     await redis.getConn().set(redisKey, newAccessToken);
   } catch (err) {
-    console.log(err);
+    // console.log(err);
     res.status(500).json(null);
     return;
   }
@@ -435,6 +467,7 @@ const renewAccessToken = async (req, res) => {
 
 module.exports = {
   get,
+  getHeadDoctor,
   add,
   authenticate,
   deauthenticate,

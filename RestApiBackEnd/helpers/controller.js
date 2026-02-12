@@ -51,10 +51,11 @@ const validatePwResetToken = (req, res, next) => {
 };
 
 const checkWhiteList = async (req, res, next) => {
-  const userCode = `${req.user.appCode ?? ""}${req.user.code ?? req.user.employeeId}`;
+  const userCode = `${req.user.appCode || ""}${req.user.code || req.user.employeeId}`;
+
   const userFromThirdPartyApp = userCode
     .toUpperCase()
-    .startsWith(`${req.user.appCode ?? ""}CLIENT_`);
+    .startsWith(`${req.user.appCode || ""}CLIENT_`);
 
   // Do not check the whitelist if user is from a third party app (ie HIMS, NURSE STATION, etc.)
   if (userFromThirdPartyApp) {
@@ -74,7 +75,7 @@ const checkWhiteList = async (req, res, next) => {
 
     next();
   } catch (err) {
-    console.log(err);
+    // console.log(err);
     res.status(500).json("Unable to check if token is whitelisted.");
   }
 };

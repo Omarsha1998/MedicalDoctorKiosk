@@ -1,6 +1,22 @@
 const db = require("../../../../helpers/sql.js");
 const miscModel = require("../../models/ape/misc.js");
 
+const getUserRoles = async (req, res) => {
+  const r = await db.query(
+    `SELECT code, name, examsHandled FROM AnnualPhysicalExam..UserRoles;`,
+    [],
+    null,
+    false,
+  );
+
+  if (r?.error) {
+    res.status(500).json(null);
+    return;
+  }
+
+  res.json(r);
+};
+
 const getDepartments = async (req, res) => {
   const r = await db.query(
     `SELECT code, name, isCollege FROM AnnualPhysicalExam..Departments;`,
@@ -211,6 +227,7 @@ const getAppConfig = async (req, res) => {
 };
 
 module.exports = {
+  getUserRoles,
   getDepartments,
   getExams,
   getCampuses,

@@ -47,6 +47,7 @@ const selectCharges = async function (conditions, args, options, txn) {
       t0.resultComponent, 
       t.resultComponent resultComponentTemplate, 
       v.id versionSetId, 
+      t0.printoutVersionSetId,
       case when t0.status is null then 'PENDING' else t0.status end status, 
       t0.dateTimeCreated dateTimeTransferred, 
       t0.dateTimeScheduled, 
@@ -141,11 +142,14 @@ const selectTestOrders = async function (conditions, args, options, txn) {
       t.alternativeTestName,
       t.departmentCode deptCode, 
       t.component, 
+      t.formMainComponent,
+      t.displayAllConsultants,
       c.chiefComplaint, 
       c.patientType, 
       c.dateTimeAdmitted, 
       -- cm.dr_code requestingPhysicianId,
 	    (select ehr_code from UERMMMC..Doctors where code = cm.dr_code) requestingPhysicianId,
+      t0.requestingPhysician testOrderRequestingPhysician,
       ward = CASE WHEN c.caseDepartment = 'ER' THEN CASE WHEN c.hostname LIKE '%COVID%' THEN 'ER' ELSE 'ER' END WHEN c.patientType = 'OPD' THEN CASE WHEN c.caseDepartment = 'OPDCHA' THEN 'OPD-CHARITY' ELSE 'OPD' END ELSE (
         SELECT 
           ISNULL(B.[DESCRIPTION], 'N/A') 
@@ -163,7 +167,12 @@ const selectTestOrders = async function (conditions, args, options, txn) {
       t0.scheduledBy, 
       t0.releasedby, 
       t0.resultComponent, 
+      t0.testComponentTemplate currentTestComponentTemplate,
+      t0.versionSetId,
+      t0.printoutVersionSetId,
+      t0.exempt testOrderExempt,
       t.resultComponent resultComponentTemplate, 
+      t.component testComponentTemplate, 
       t0w.status testOrderWorkFlowStatus,
       t0w.isProxy,
       t0w.consultantId,
@@ -185,7 +194,6 @@ const selectTestOrders = async function (conditions, args, options, txn) {
       twfs.sendSMSResidents,
       twfs.sendEmailResidents,
       twfs.popupReleasing,
-      v.id versionSetId, 
       case when t0.status is null then 'PENDING' else t0.status end status, 
       t0.dateTimeCreated dateTimeTransferred, 
       t0.dateTimeScheduled, 
@@ -205,8 +213,6 @@ const selectTestOrders = async function (conditions, args, options, txn) {
       join UERMMMC..Charges_Details cd on cm.chargeslipNo = cd.chargeslipNo 
       join UERMResults..TestMappings tm on cd.charge_id = tm.ChargeId and tm.active = 1
       join UERMResults..Tests t on tm.TestCode = t.Code 
-      left join UERMResults..VersionSets v on v.TestCode = t.Code 
-      and v.active = 1 
       left join UERMMMC..rooms r on r.ROOMNO = c.lastRoom 
       left join UERMResults..TestOrders t0 on cm.chargeSlipNo = t0.chargeSlipNo 
       and t0.chargeId = cd.CHARGE_ID 
@@ -282,6 +288,7 @@ const selectTestOrders = async function (conditions, args, options, txn) {
         }
 
         if (!options.processing) {
+          // console.log(list.testOrderExempt, "here2");
           // Check for exception of reading //
           if (list.exceptionComponent !== null) {
             const dynamicComponent = await require(
@@ -289,9 +296,11 @@ const selectTestOrders = async function (conditions, args, options, txn) {
             );
             list.exempt = await dynamicComponent[list.exceptionMethod](list);
           } else {
-            list.exempt = false;
+            list.exempt = list.testOrderExempt;
           }
           // Check for exception of reading //
+        } else {
+          list.exempt = list.testOrderExempt;
         }
       }
     }
@@ -309,7 +318,6 @@ const selectTestOrderProcessing = async function (
   txn,
 ) {
   try {
-    console.time("query");
     const charges = await sqlHelper.query(
       `select 
         c.caseNo, 
@@ -332,6 +340,10 @@ const selectTestOrderProcessing = async function (
         t.alternativeTestName, 
         t.departmentCode deptCode, 
         t.component, 
+        t.formMainComponent,
+        t.resultComponent resultComponentTemplate, 
+        t.component testComponentTemplate,  
+        t.displayAllConsultants,
         c.chiefComplaint, 
         c.patientType, 
         c.dateTimeAdmitted, 
@@ -344,6 +356,7 @@ const selectTestOrderProcessing = async function (
           where 
             code = cm.dr_code
         ) requestingPhysicianId, 
+        t0.requestingPhysician testOrderRequestingPhysician,
         ward = CASE WHEN c.caseDepartment = 'ER' THEN CASE WHEN c.hostname LIKE '%COVID%' THEN 'ER' ELSE 'ER' END WHEN c.patientType = 'OPD' THEN CASE WHEN c.caseDepartment = 'OPDCHA' THEN 'OPD-CHARITY' ELSE 'OPD' END ELSE (
           SELECT 
             ISNULL(B.[DESCRIPTION], 'N/A') 
@@ -361,7 +374,9 @@ const selectTestOrderProcessing = async function (
         t0.scheduledBy, 
         t0.releasedby, 
         t0.resultComponent, 
-        t.resultComponent resultComponentTemplate, 
+        t0.testComponentTemplate currentTestComponentTemplate,
+        t0.versionSetId,
+        t0.printoutVersionSetId,
         t0w.status testOrderWorkFlowStatus, 
         t0w.isProxy, 
         t0w.consultantId, 
@@ -383,7 +398,6 @@ const selectTestOrderProcessing = async function (
         twfs.sendSMSResidents, 
         twfs.sendEmailResidents, 
         twfs.popupReleasing,
-        v.id versionSetId, 
         case when t0.status is null then 'PENDING' else t0.status end status, 
         t0.dateTimeCreated dateTimeTransferred, 
         t0.dateTimeScheduled, 
@@ -413,9 +427,7 @@ const selectTestOrderProcessing = async function (
         join UERMMMC..vw_EncounterCases c on c.caseno = cm.caseno 
         join UERMResults..TestMappings tm on cd.charge_id = tm.ChargeId 
         and tm.active = 1 
-        join UERMResults..Tests t on tm.TestCode = t.Code 
-        left join UERMResults..VersionSets v on v.TestCode = t.Code 
-        and v.active = 1 
+        join UERMResults..Tests t on tm.TestCode = t.Code
         left join UERMMMC..rooms r on r.ROOMNO = c.lastRoom 
       where 
         1 = 1 ${conditions}
@@ -424,7 +436,6 @@ const selectTestOrderProcessing = async function (
       txn,
     );
 
-    console.timeEnd("query");
     if (charges.length > 0) {
       for (const list of charges) {
         list.birthdate = util.formatDate2({

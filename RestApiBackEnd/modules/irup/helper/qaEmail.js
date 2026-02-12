@@ -32,7 +32,7 @@ async function ActionPrimaryEmail(
         You are required to submit an <b>Action Item Report</b> to the <b>Quality Assurance In-Charge (QAIC).</b>
         Please use the button below to access the Primary Module: <br><br>
 
-        <a href="http://10.107.0.30:9000/irms-app/#/Login" target="_blank" 
+        <a href="https://local.uerm.edu.ph/irms-app/#/Login" target="_blank" 
           style="display: block; width: fit-content; margin: 20px auto; 
                   padding: 20px 30px; background-color: #007BFF; 
                   color: white; text-decoration: none; border-radius: 5px;">
@@ -78,7 +78,7 @@ async function ActionDirector(
 
         For more information, please access the Director Module using the link below: <br><br>
 
-        <a href="http://10.107.0.30:9000/irms-app/#/Login" target="_blank" 
+        <a href="https://local.uerm.edu.ph/irms-app/#/Login" target="_blank" 
           style="display: block; width: fit-content; margin: 20px auto; 
                   padding: 20px 30px; background-color: #007BFF; 
                   color: white; text-decoration: none; border-radius: 5px;">
@@ -88,6 +88,49 @@ async function ActionDirector(
       `,
       email: DirectorEmail,
       name: DirectorName,
+    };
+    await util.sendEmail(emailContent);
+  }
+}
+
+async function ActionAccess(
+  uERMEmail,
+  fullName,
+  iRNo,
+  subjectName,
+  subjectSpecificExam,
+  riskLabel,
+) {
+  if (uERMEmail) {
+    const emailContent = {
+      subject: "INCIDENT REPORT",
+      header: "INCIDENT REPORT UPDATE <br>",
+      content: `
+        Dear <b>${fullName},</b><br><br>
+
+        As part of our ongoing commitment to maintaining the highest standards of quality and safety in our operations, 
+        we would like to provide you with a comprehensive update regarding 
+        <b>Incident Report No. ${iRNo}.</b> The incident has been categorized as <b>${riskLabel}</b>, 
+        based on the assessed level of risk.<br><br>
+
+        <b>Incident Report Details:</b><br>
+
+        <ul style="margin-left:20px; padding-left:20px;">
+          <li><b>Subject of the Incident:</b> ${subjectName}${subjectSpecificExam ? ` - ${subjectSpecificExam}` : ""}</li>
+        </ul>
+
+        For more information, please access the Director Module using the link below: <br><br>
+
+        <a href="https://local.uerm.edu.ph/irms-app/#/Login" target="_blank" 
+          style="display: block; width: fit-content; margin: 20px auto; 
+                  padding: 20px 30px; background-color: #007BFF; 
+                  color: white; text-decoration: none; border-radius: 5px;">
+          VISIT DIRECTOR MODULE
+        </a>
+        <br>
+      `,
+      email: uERMEmail,
+      name: fullName,
     };
     await util.sendEmail(emailContent);
   }
@@ -174,7 +217,7 @@ async function sendDisapprovalActionEmail(
 
       To view the declined details, please click the button below:
 
-      <a href="http://10.107.0.30:9000/irms-app/#/Login" target="_blank" 
+      <a href="https://local.uerm.edu.ph/irms-app/#/Login" target="_blank" 
         style="display: block; width: fit-content; margin: 20px auto; 
         padding: 20px 30px; background-color: #007BFF; 
         color: white; text-decoration: none; border-radius: 5px;">
@@ -219,7 +262,7 @@ async function sendApprovedActionEmail(
       <br><br>
 
       You may view the approved details by clicking the button below:
-      <a href="http://10.107.0.30:9000/irms-app/#/Login" target="_blank" 
+      <a href="https://local.uerm.edu.ph/irms-app/#/Login" target="_blank" 
         style="display: block; width: fit-content; margin: 20px auto; 
         padding: 20px 30px; background-color: #007BFF; 
         color: white; text-decoration: none; border-radius: 5px;">
@@ -264,7 +307,7 @@ async function RCAPrimaryEmail(
                 You are required to submit an <b>Root Cause Analysis (RCA) Report</b> to the <b>Quality Assurance In-Charge (QAIC).</b>
                 Please use the button below to access the Primary Module: <br><br>
 
-                <a href="http://10.107.0.30:9000/irms-app/#/Login" target="_blank" 
+                <a href="https://local.uerm.edu.ph/irms-app/#/Login" target="_blank" 
                   style="display: block; width: fit-content; margin: 20px auto; 
                   padding: 20px 30px; background-color: #007BFF; 
                   color: white; text-decoration: none; border-radius: 5px;">
@@ -310,7 +353,7 @@ async function RCADirector(
 
         For more information, please access the Director Module using the link below: <br><br>
 
-        <a href="http://10.107.0.30:9000/irms-app/#/Login" target="_blank" 
+        <a href="https://local.uerm.edu.ph/irms-app/#/Login" target="_blank" 
           style="display: block; width: fit-content; margin: 20px auto; 
                   padding: 20px 30px; background-color: #007BFF; 
                   color: white; text-decoration: none; border-radius: 5px;">
@@ -320,6 +363,50 @@ async function RCADirector(
       `,
       email: DirectorEmail,
       name: DirectorName,
+    };
+    await util.sendEmail(emailContent);
+  }
+}
+
+async function RCAAccess(
+  uERMEmail,
+  fullName,
+  iRNo,
+  subjectName,
+  subjectSpecificExam,
+  riskLabel,
+) {
+  if (uERMEmail) {
+    const emailContent = {
+      subject: "INCIDENT REPORT",
+      header: "INCIDENT REPORT UPDATE <br>",
+      content: `
+        Dear <b>${fullName},</b><br><br>
+
+        As part of our ongoing commitment to maintaining the highest standards of quality and safety in our operations, 
+        we would like to provide you with a comprehensive update regarding 
+        <b>Incident Report No. ${iRNo}.</b> The incident has been categorized as <b>${riskLabel}</b>, 
+        based on the assessed level of risk.<br><br>
+
+        <b>Incident Report Details:</b><br>
+
+        <ul style="margin-left:20px; padding-left:20px;">
+          <li><b>Subject of the Incident:</b> ${subjectName}${subjectSpecificExam ? ` - ${subjectSpecificExam}` : ""}</li>
+        </ul>
+        <br>
+
+        For more information, please access the Primary Module using the link below: <br><br>
+
+        <a href="https://local.uerm.edu.ph/irms-app/#/Login" target="_blank" 
+          style="display: block; width: fit-content; margin: 20px auto; 
+                  padding: 20px 30px; background-color: #007BFF; 
+                  color: white; text-decoration: none; border-radius: 5px;">
+          VISIT DIRECTOR MODULE
+        </a>
+        <br>
+      `,
+      email: uERMEmail,
+      name: fullName,
     };
     await util.sendEmail(emailContent);
   }
@@ -409,7 +496,7 @@ async function sendDisapprovalRCAEmail(
 
       To view the disapproved details, please click the button below:
 
-      <a href="http://10.107.0.30:9000/irms-app/#/Login" target="_blank" 
+      <a href="https://local.uerm.edu.ph/irms-app/#/Login" target="_blank" 
         style="display: block; width: fit-content; margin: 20px auto; 
         padding: 20px 30px; background-color: #007BFF; 
         color: white; text-decoration: none; border-radius: 5px;">
@@ -457,7 +544,7 @@ async function sendApprovedRCAEmail(
         <br><br>
 
         You may view the approved RCA details by clicking the button below:
-        <a href="http://10.107.0.30:9000/irms-app/#/Login" target="_blank" 
+        <a href="https://local.uerm.edu.ph/irms-app/#/Login" target="_blank" 
           style="display: block; width: fit-content; margin: 20px auto; 
           padding: 20px 30px; background-color: #007BFF; 
           color: white; text-decoration: none; border-radius: 5px;">
@@ -525,9 +612,11 @@ async function sendApprovedRCAEmail(
 module.exports = {
   ActionPrimaryEmail,
   ActionDirector,
+  ActionAccess,
   ActionSecondryEmail,
   RCAPrimaryEmail,
   RCADirector,
+  RCAAccess,
   RCASecondryEmail,
   sendDisapprovalActionEmail,
   sendApprovedActionEmail,

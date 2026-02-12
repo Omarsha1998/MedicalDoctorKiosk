@@ -21,14 +21,17 @@ const { logError } = require("./helpers/util.js");
 // ============ ADD CLAMAV IMPORT ============
 const {
   initClamAV,
-} = require("./modules/employee-central/controllers/announcementController.js"); // Adjust path to your controller
+} = require("./modules/employee-central/controllers/announcementController.js");
 // ===========================================
 
 const prodDbConfig = require("./config/databaseConfig.js");
 const testDbConfig = require("./config/databaseTestingConfig.js");
-// const diagDbConfig = require("./config/diagnosticDatabase.js");
+const diagDbConfig = require("./config/diagnosticDatabase.js");
 const eClaimsConfig = require("./config/databaseEclaimsConfig.js").prod;
 const eClaimsConfigTest = require("./config/databaseEclaimsConfig.js").dev;
+
+const linkedToUEDbConfig = require("./config/databaseLinkedToUE.js").prod;
+const linkedToUEDbConfigTest = require("./config/databaseLinkedToUE.js").dev;
 
 const devMode = process.env.NODE_ENV === "dev" || process.env.DEV;
 
@@ -44,7 +47,12 @@ const port = devMode
 
   await db.addConn("default", devMode ? testDbConfig : prodDbConfig);
   await db.addConn("prod", prodDbConfig);
-  // await db.addConn("diag", diagDbConfig);
+  await db.addConn("diag", diagDbConfig);
+  await db.addConn(
+    "linkedToUE",
+    devMode ? linkedToUEDbConfigTest : linkedToUEDbConfig,
+  );
+
   await redis.addConn();
 
   // OPTIONAL CONNECTIONS
@@ -98,36 +106,29 @@ const port = devMode
     "http://10.107.5.253",
     "http://10.107.15.171",
 
+    // "http://10.107.0.30:8000",
     // "http://10.107.0.30:9000",
-    // "http://10.107.0.10:8081",
-    // "http://10.107.0.10:9000",
     // "http://10.107.0.10:9001",
     // "http://10.107.0.10:8083",
     // "http://10.107.0.10:8081",
     // "http://10.107.0.10:8080",
     // "http://10.107.0.10:9003",
+    // "http://10.107.0.10:9000",
     // "http://10.107.0.10:9002",
     // "http://10.107.0.10:8081",
     // "http://10.107.0.10:8082",
-    // "http://10.107.0.11:9000",
+    "http://10.107.0.11:9000",
     // "http://10.107.0.30:8000",
   ];
 
   const corsOptions = devMode
     ? {
-        // FOR TESTING DEV MODE COMMENT IF PUSHING
         origin: (origin, callback) => {
-          if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, origin); // Allow the specific origin
-            return;
-          }
-          console.log(origin, "Not allowed by CORS");
-          callback(new Error("Not allowed by CORS"));
+          callback(null, origin);
         },
         methods: ["GET", "POST", "PUT", "PATCH", "OPTIONS", "HEAD"],
         credentials: true,
         allowedHeaders: ["Content-Type", "Authorization"],
-        // FOR TESTING DEV MODE COMMENT IF PUSHING
       }
     : {
         origin: (origin, callback) => {

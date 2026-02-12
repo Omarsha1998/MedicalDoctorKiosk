@@ -8,17 +8,19 @@ const PrimaryACTDisAll = async (req, res) => {
     const deptCode = req.user?.DeptCode || null;
     const userCode = req.user?.EmployeeCode || null;
 
-    let result;
+    let result = [];
 
     if (userCode) {
       result = await model.getACTUnderEmployee(deptCode, userCode);
-    } else {
-      result = await model.getACTHead(deptCode);
+    }
+
+    if (!result || result.length === 0) {
+      result = await model.getACTHead(userCode);
     }
 
     return res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: "Internal server error. Please try again later.",
     });
   }
@@ -33,8 +35,10 @@ const PrimaryRCADisAll = async (req, res) => {
 
     if (userCode) {
       result = await model.getRCAUnderEmployee(deptCode, userCode);
-    } else {
-      result = await model.getRCAHead(deptCode);
+    }
+
+    if (!result || result.length === 0) {
+      result = await model.getRCAHead(userCode);
     }
 
     return res.status(200).json(result);

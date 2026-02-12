@@ -173,7 +173,12 @@ const selectFloatingAppointments = async function (
     case when d.code is not null 
       then concat(d.lastname, ', ', d.firstname, ' ', d.middlename)
       else null
-    end interviewerName
+    end interviewerName,
+    a.googleMeetLink, 
+    a.googleCalendarLink,
+    a.googleCalendarId,
+    a.googleCalendarEventId,
+    a.status
     from UERMOnlineAdmission..ApplicantAppointments a
     join UERMOnlineAdmission..Appointments b on b.code = a.AppointmentId
     join UERMOnlineAdmission..vw_Applications c on c.app_number = a.ApplicationNumber

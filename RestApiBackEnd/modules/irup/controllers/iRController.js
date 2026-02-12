@@ -90,43 +90,67 @@ const FormIncident = async (req, res) => {
     }
 
     const recordsDisplayIncidentRep = await model.getIncidentReport();
-    const incident = recordsDisplayIncidentRep[0];
-    const resultDivision = await model.getDivisionEmail(incident.divisionCode);
 
-    for (const divisionItem of resultDivision) {
-      const {
+    if (!recordsDisplayIncidentRep.length) {
+      throw new Error("No incident report found");
+    }
+
+    const incident = recordsDisplayIncidentRep[0];
+
+    const {
+      iRNo,
+      subjectCode,
+      subjectName,
+      subjectSpecificExam,
+      subjectDate,
+      subjectTime,
+      subjectLoc,
+      description,
+      subjectBriefDes,
+      divisionCode,
+    } = incident;
+
+    // ⛔ STOP EVERYTHING kapag "others"
+    if (subjectCode === "others") {
+      await irEmail.OtherSubjectCode(iRNo, description, subjectBriefDes);
+      return;
+    }
+
+    const resultDivision = await model.getDivisionEmail(divisionCode);
+    const resultArea = await model.getAreaAssignee(divisionCode);
+
+    if (!resultDivision.length) {
+      throw new Error("No division email found");
+    }
+
+    const { division, divisionEmail } = resultDivision[0];
+
+    // 🔹 Email to division
+    await irEmail.UniqueSubjectCode(
+      iRNo,
+      subjectName,
+      subjectSpecificExam,
+      subjectDate,
+      subjectTime,
+      subjectLoc,
+      division,
+      divisionEmail,
+    );
+
+    // 🔹 Email to EACH area assignee
+    for (const area of resultArea) {
+      const { fullName, uERMEmail } = area;
+
+      await irEmail.AreaSubjectCode(
         iRNo,
-        subjectCode,
         subjectName,
         subjectSpecificExam,
         subjectDate,
         subjectTime,
         subjectLoc,
-        description,
-        subjectBriefDes,
-      } = incident;
-
-      const { division, divisionEmail } = divisionItem;
-
-      if (subjectCode === "others") {
-        await irEmail.OtherSubjectCode(
-          iRNo,
-          description,
-          subjectBriefDes,
-          divisionEmail,
-        );
-      } else {
-        await irEmail.UniqueSubjectCode(
-          iRNo,
-          subjectName,
-          subjectSpecificExam,
-          subjectDate,
-          subjectTime,
-          subjectLoc,
-          division,
-          divisionEmail,
-        );
-      }
+        fullName,
+        uERMEmail,
+      );
     }
 
     return res.status(200).json(incident);

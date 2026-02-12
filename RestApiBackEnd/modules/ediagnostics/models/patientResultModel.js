@@ -4,47 +4,120 @@ const sqlHelper = require("../../../helpers/sql");
 
 const selectPatientResults = async function (conditions, args, options, txn) {
   try {
+    // console.log(`select
+    //     ${util.empty(options.top) ? "" : `TOP(${options.top})`}
+    //     a.id,
+    //     b.id patientResultValueId,
+    //     a.verifierId,
+    //     a.validatorId,
+    //     a.consultantId,
+    //     a.completionRemarks,
+    //     b.patientResultId,
+    //     b.testComponentCode,
+    //     b.value,
+    //     b.flag,
+    //     b.normalMin,
+    //     b.normalMax,
+    //     b.criticalMin,
+    //     b.criticalMax,
+    //     b.delimiter,
+    //     c.id fileId,
+    //     c.fileName,
+    //     c.fileType,
+    //     c.fileSize,
+    //     b.createdBy,
+    //     b.updatedBy,
+    //     b.dateTimeCreated,
+    //     b.dateTimeUpdated,
+    //     b.remarks
+    //   from
+    //     UERMResults..PatientResults a
+    //     left join UERMResults..PatientResultValues b on b.patientResultId = a.Id
+    //     left join UERMResults..PatientResultValueFiles c on c.patientResultValueId = b.id
+    //     left join UERMResults..TestComponents d on d.code = b.testComponentCode
+    //   where 1=1 ${conditions}
+    //   ${util.empty(options.order) ? "" : `order by ${options.order}`}`);
+
     const results = await sqlHelper.query(
-      `select 
+      `select
         ${util.empty(options.top) ? "" : `TOP(${options.top})`}
-        a.id,
-        b.id patientResultValueId, 
-        a.verifierId,
-        a.validatorId,
-        a.consultantId,
-        a.completionRemarks,
-        b.patientResultId,
-        b.testComponentCode,
-        b.value,
-        b.flag,
-        b.normalMin,
-        b.normalMax,
-        c.id fileId,
-        c.fileName,
-        c.fileType,
-        c.fileSize,
-        b.createdBy,
-        b.updatedBy,
-        b.dateTimeCreated,
-        b.dateTimeUpdated,
-        b.remarks
+        b.id,
+        c.id patientResultValueId,
+        b.verifierId,
+        b.validatorId,
+        b.consultantId,
+        b.completionRemarks,
+        c.patientResultId,
+        a.code testComponentCode,
+        c.value,
+        c.flag,
+        c.normalMin,
+        c.normalMax,
+        c.criticalMin,
+        c.criticalMax,
+        c.delimiter,
+        a.versionSetId,
+        d.id fileId,
+        d.fileName,
+        d.fileType,
+        d.fileSize,
+        c.createdBy,
+        c.updatedBy,
+        c.dateTimeCreated,
+        c.dateTimeUpdated,
+        c.remarks
       from
-        UERMResults..PatientResults a 
-        left join UERMResults..PatientResultValues b on b.patientResultId = a.Id
-        left join UERMResults..PatientResultValueFiles c on c.patientResultValueId = b.id
+        UERMResults..TestComponents a
+        left join UERMREsults..PatientResults b on b.TestCode = a.TestCode
+        left join UERMResults..PatientResultValues c on c.patientResultId = b.id and c.TestComponentCode = a.Code
+        left join UERMResults..PatientResultValueFiles d on d.patientResultValueId = b.id
       where 1=1 ${conditions}
       ${util.empty(options.order) ? "" : `order by ${options.order}`}`,
       args,
       txn,
     );
 
-    // console.log(results);
+    // const results = await sqlHelper.query(
+    //   `select
+    //     ${util.empty(options.top) ? "" : `TOP(${options.top})`}
+    //     a.id,
+    //     b.id patientResultValueId,
+    //     a.verifierId,
+    //     a.validatorId,
+    //     a.consultantId,
+    //     a.completionRemarks,
+    //     b.patientResultId,
+    //     b.testComponentCode,
+    //     b.value,
+    //     b.flag,
+    //     b.normalMin,
+    //     b.normalMax,
+    //     b.criticalMin,
+    //     b.criticalMax,
+    //     b.delimiter,
+    //     c.id fileId,
+    //     c.fileName,
+    //     c.fileType,
+    //     c.fileSize,
+    //     b.createdBy,
+    //     b.updatedBy,
+    //     b.dateTimeCreated,
+    //     b.dateTimeUpdated,
+    //     b.remarks
+    //   from
+    //     UERMResults..PatientResults a
+    //     left join UERMResults..PatientResultValues b on b.patientResultId = a.Id
+    //     left join UERMResults..PatientResultValueFiles c on c.patientResultValueId = b.id
+    //     left join UERMResults..TestComponents d on d.code = b.testComponentCode
+    //   where 1=1 ${conditions}
+    //   ${util.empty(options.order) ? "" : `order by ${options.order}`}`,
+    //   args,
+    //   txn,
+    // );
 
     if (results.length > 0) {
       for (const list of results) {
-        if (!util.empty(list.fileValue)) {
-          list.fileValue = Buffer.from(list.fileValue).toString("base64");
-        }
+        list.flag = list.flag === null ? "" : list.flag;
       }
     }
 

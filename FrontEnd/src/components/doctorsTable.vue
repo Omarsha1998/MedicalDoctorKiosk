@@ -154,7 +154,36 @@
           </template>
 
           <template v-else-if="col.name === 'schedule'">
-            <div v-if="!secretaryView">
+            <div class="text-wrap">
+              <div v-if="props.row.doctorSchedule">
+                <div
+                  v-for="(sched, idx) in formattedSchedule(
+                    props.row.doctorSchedule
+                  )"
+                  :key="idx"
+                >
+                  {{ sched }}
+                </div>
+              </div>
+
+              <div v-else>-</div>
+            </div>
+
+            <div v-if="secretaryView">
+              <div>
+                Time-In:
+                <span class="text-subtitle2 text-bold">{{
+                  formatTime(props.row.dateTimeIn)
+                }}</span>
+              </div>
+              <div>
+                Time-Out:
+                <span class="text-subtitle2 text-bold">{{
+                  formatTime(props.row.dateTimeOut)
+                }}</span>
+              </div>
+            </div>
+            <!-- <div v-if="!secretaryView">
               <div class="text-wrap">
                 <div
                   v-for="(sched, idx) in formatSchedule(
@@ -182,7 +211,19 @@
                   formatTime(props.row.dateTimeOut)
                 }}</span>
               </div>
+            </div> -->
+            <!-- <div>
+              Time-In:
+              <span class="text-subtitle2 text-bold">{{
+                formatTime(props.row.dateTimeIn)
+              }}</span>
             </div>
+            <div>
+              Time-Out:
+              <span class="text-subtitle2 text-bold">{{
+                formatTime(props.row.dateTimeOut)
+              }}</span>
+            </div> -->
           </template>
           <template v-else-if="col.name === 'secretary'">
             <div v-if="props.row.secName1 || props.row.secName2">
@@ -839,6 +880,7 @@ export default {
     },
 
     formatSchedule(rawSchedule) {
+      console.log(rawSchedule);
       if (!rawSchedule) return [];
 
       const hasDays = /(MON|TUE|WED|THU|FRI|SAT|SUN)/i.test(rawSchedule);
@@ -900,6 +942,90 @@ export default {
             : `${group.startDay} - ${group.endDay}`;
         return `${dayPart} - ${group.value}`;
       });
+    },
+
+    formattedSchedule(rawSchedule) {
+      if (!rawSchedule) return [];
+
+      const hasDays = /(MON|TUE|WED|THU|FRI|SAT|SUN)/i.test(rawSchedule);
+      if (!hasDays) {
+        return [rawSchedule.trim()];
+      }
+
+      const dayOrder = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      const dayMap = {
+        MON: "Mon",
+        TUE: "Tue",
+        WED: "Wed",
+        THU: "Thu",
+        FRI: "Fri",
+        SAT: "Sat",
+        SUN: "Sun",
+      };
+
+      const entries = rawSchedule
+        .split(",")
+        .map((s) => s.trim())
+        .map((entry) => {
+          const [day, ...rest] = entry.split(" - ");
+          return {
+            day: dayMap[day.trim().toUpperCase()] || day.trim(),
+            value: rest.join(" - ").trim(),
+          };
+        });
+
+      // Group by same value (time + consultation)
+      const valueGroups = {};
+
+      entries.forEach((entry) => {
+        if (!valueGroups[entry.value]) {
+          valueGroups[entry.value] = [];
+        }
+        valueGroups[entry.value].push(entry.day);
+      });
+
+      // Format each group
+      const result = [];
+
+      for (const [value, days] of Object.entries(valueGroups)) {
+        // Sort days in order
+        days.sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b));
+
+        // Group consecutive days
+        const dayRanges = [];
+        let rangeStart = days[0];
+        let rangeEnd = days[0];
+
+        for (let i = 1; i < days.length; i++) {
+          const prevIndex = dayOrder.indexOf(rangeEnd);
+          const currIndex = dayOrder.indexOf(days[i]);
+
+          // If consecutive, extend the range
+          if (currIndex === prevIndex + 1) {
+            rangeEnd = days[i];
+          } else {
+            // Save current range and start a new one
+            dayRanges.push(
+              rangeStart === rangeEnd
+                ? rangeStart
+                : `${rangeStart} - ${rangeEnd}`
+            );
+            rangeStart = days[i];
+            rangeEnd = days[i];
+          }
+        }
+
+        // Push the last range
+        dayRanges.push(
+          rangeStart === rangeEnd ? rangeStart : `${rangeStart} - ${rangeEnd}`
+        );
+
+        // Join ranges with commas
+        const dayPart = dayRanges.join(", ");
+        result.push(`${dayPart} - ${value}`);
+      }
+
+      return result;
     },
   },
 

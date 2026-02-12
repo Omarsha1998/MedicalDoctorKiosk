@@ -390,6 +390,11 @@ router.post(
   validateAccessToken,
   DTRController.saveTimeData,
 );
+router.post(
+  `${controllerName}/checkApproverOwnership`,
+  validateAccessToken,
+  DTRController.checkApproverOwnership,
+);
 // router.get(`${controllerName}/manualUploadDtr`, DTRController.manualUploadDtr);
 // (async () => {
 //   await DTRController.manualUploadDtr();
@@ -589,11 +594,11 @@ router.post(
 
 //DutyRoster
 controllerName = "/dutyroster";
-router.get(
-  `${controllerName}/getDepartment`,
-  validateAccessToken,
-  DutyRoster.getDepartment,
-);
+// router.get(
+//   `${controllerName}/getDepartment`,
+//   validateAccessToken,
+//   DutyRoster.getDepartment,
+// );
 router.get(
   `${controllerName}/getEmployees`,
   validateAccessToken,

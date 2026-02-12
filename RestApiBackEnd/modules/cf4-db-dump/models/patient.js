@@ -1,7 +1,15 @@
 const db = require("../../../helpers/sql.js");
-const { jsDateToISOString } = require("../../../helpers/util.js");
-// const { trim } = require("../../../helpers/util.js");
+
+const {
+  jsDateToISOString,
+  formatToEnglishStr,
+} = require("../../../helpers/util.js");
+
 const tableName = "EasyClaimsOffline..patient"; // should be camel-cased
+
+const formatName = (v) => {
+  return formatToEnglishStr(v)?.toUpperCase() || "";
+};
 
 const upsert = async (userCode, pmccNo, patient, _case, txn) => {
   if (!userCode) throw "`userCode` is required.";
@@ -65,11 +73,9 @@ const upsert = async (userCode, pmccNo, patient, _case, txn) => {
     ? patient.pin.replace(/[- ]/g, "")
     : "000000000000";
 
-  const patientFName = patient.firstName.toUpperCase();
-  const patientMName = patient.middleName
-    ? patient.middleName.toUpperCase()
-    : "";
-  const patientLName = patient.lastName ? patient.lastName.toUpperCase() : "";
+  const patientFName = formatName(patient.firstName);
+  const patientMName = formatName(patient.middleName);
+  const patientLName = formatName(patient.lastName);
 
   const newPatient = {
     hciCaseNo,

@@ -30,10 +30,10 @@ router.get(
   visitController.getVisitOrders,
 );
 
+router.get("/track/:identificationCode", visitController.track);
+
 // IMPORTANT: ALWAYS PUT THIS ROUTE TO LAST OF `GET` ROUTES TO NOT CONFLICT WITH OTHER `GET` ROUTES
 router.get("/:id", validateAccessToken, checkWhiteList, visitController.getOne);
-
-router.get("/track/:identificationCode", visitController.track);
 
 router.post(
   "/accept-exam",

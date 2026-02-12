@@ -418,6 +418,28 @@ const getDirectorEmail = async (DeptCode) => {
   );
 };
 
+const getAccessEmail = async (DeptCode) => {
+  return await sqlHelper.query(
+    `
+    SELECT 
+        AA.DeptCode, 
+        E.FirstName,
+        E.UERMEmail,
+        CONCAT(
+          LastName, ', ', FirstName, ' ',
+          CASE 
+            WHEN MiddleName IS NOT NULL THEN LEFT(MiddleName, 1) + '.' 
+            ELSE '' 
+          END
+        ) AS FullName
+      FROM [IRUP].[dbo].[IRRequestAccess] AA
+      LEFT JOIN [UE database]..Employee E
+        ON E.EmployeeCode = AA.EmployeeCode
+      WHERE AA.DeptCode = ? AND AA.isActive = '1'`,
+    [DeptCode],
+  );
+};
+
 const getRecord = async (IRNo) => {
   return await sqlHelper.query(
     `
@@ -1011,6 +1033,8 @@ module.exports = {
   getupdatedIR,
   getPrimaryEmail,
   getDirectorEmail,
+  getAccessEmail,
+
   getQAs,
   getRecord,
   getEmployeeName,

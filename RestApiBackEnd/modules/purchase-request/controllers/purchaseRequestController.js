@@ -329,6 +329,10 @@ const savePurchaseRequests = async function (req, res) {
     const prDetails = req.body.prDetails;
     const prItems = req.body.prItems;
     try {
+      if (util.empty(prDetails.toDepartment)) {
+        return "Error please try refreshing and requesting again.";
+      }
+
       prDetails.code = await sqlHelper.generateDynamicUniqueCode(
         "UERMINV..PurchaseRequests",
         prDetails.type === "stockitem" || prDetails.type === "rivpharmacy"
@@ -352,7 +356,7 @@ const savePurchaseRequests = async function (req, res) {
       );
 
       if (getPurchaseRequests.length > 0) {
-        throw "Error saving request. Please try again.";
+        throw "Error saving request. Code already taken. Please try again.";
       }
 
       prDetails.createdBy = util.currentUserToken(req).code;
@@ -361,6 +365,11 @@ const savePurchaseRequests = async function (req, res) {
         prDetails,
         txn,
       );
+
+      if (!prDetailStatus) {
+        throw { error: "ERror saving request" };
+      }
+
       if (Object.keys(prDetailStatus).length > 0) {
         for (const items of prItems) {
           const itemDetails = {

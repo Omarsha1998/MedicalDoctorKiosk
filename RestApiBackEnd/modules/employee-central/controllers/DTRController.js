@@ -1,4 +1,5 @@
 const DTR = require("../models/DTRModel.js");
+const hierarchy = require("../../employee-central/models/hierarchyModel.js");
 const sqlHelper = require("../../../helpers/sql.js");
 
 const getDTRDetails = async function (req, res) {
@@ -265,6 +266,118 @@ const getLastMonthDates = () => {
   return { startLastMonth, endLastMonth };
 };
 
+const processEmployee = async (
+  employee,
+  fromDate,
+  toDate,
+  payrollPeriod,
+  computeLate,
+  startLastMonth,
+  endLastMonth,
+) => {
+  try {
+    const promises = [
+      DTR.getDTRDetails(fromDate, toDate, employee.code, "", "", ""),
+      DTR.employeeOvertime(employee.code, payrollPeriod),
+    ];
+
+    if (computeLate) {
+      promises.push(
+        DTR.getComputedLate(
+          startLastMonth,
+          endLastMonth,
+          employee.code,
+          "",
+          "computeLate",
+          "",
+        ),
+      );
+    }
+
+    const results = await Promise.all(promises);
+
+    return {
+      code: employee.code,
+      dtr: results[0],
+      overtime: results[1],
+      ...(computeLate && results[1]?.[0]?.lateSum
+        ? { computedLate: results[2][0].lateSum }
+        : {}),
+    };
+  } catch (error) {
+    // if one employee fails, return empty instead of crashing the whole batch
+    console.error(`Failed for employee ${employee.code}:`, error.message);
+    return {
+      code: employee.code,
+      dtr: [],
+      overtime: [],
+      ...(computeLate ? { computedLate: 0 } : {}),
+    };
+  }
+};
+
+// const handleSummarizeReport = async (
+//   payrollPeriod,
+//   employeeClass,
+//   fromDate,
+//   toDate,
+//   computeLate,
+// ) => {
+//   const getEmployees = await DTR.getEmployees(payrollPeriod, employeeClass);
+
+//   if (!getEmployees || getEmployees.length === 0) {
+//     return [];
+//   }
+
+//   const { startLastMonth, endLastMonth } = computeLate
+//     ? getLastMonthDates()
+//     : { startLastMonth: null, endLastMonth: null };
+
+//   const employeeDataArray = await Promise.all(
+//     getEmployees.map(async (employee) => {
+//       const promises = [
+//         DTR.getDTRDetails(fromDate, toDate, employee.code, "", "", ""),
+//         DTR.employeeOvertime(employee.code, payrollPeriod),
+//       ];
+
+//       if (computeLate) {
+//         promises.push(
+//           DTR.getComputedLate(
+//             startLastMonth,
+//             endLastMonth,
+//             employee.code,
+//             "",
+//             "computeLate",
+//             "",
+//           ),
+//         );
+//       }
+
+//       const results = await Promise.all(promises);
+
+//       // return {
+//       //   code: employee.code,
+//       //   dtr: dateFormatDtr(results[0]),
+//       //   overtime: results[1],
+//       //   ...(computeLate && results[2]?.[0]?.lateSum
+//       //     ? { computedLate: results[2][0].lateSum }
+//       //     : {}),
+//       // };
+
+//       return {
+//         code: employee.code,
+//         dtr: results[0],
+//         overtime: results[1],
+//         ...(computeLate && results[2]?.[0]?.lateSum
+//           ? { computedLate: results[2][0].lateSum }
+//           : {}),
+//       };
+//     }),
+//   );
+
+//   return employeeDataArray;
+// };
+
 const handleSummarizeReport = async (
   payrollPeriod,
   employeeClass,
@@ -272,9 +385,9 @@ const handleSummarizeReport = async (
   toDate,
   computeLate,
 ) => {
-  const getEmployees = await DTR.getEmployees(payrollPeriod, employeeClass);
+  const employees = await DTR.getEmployees(payrollPeriod, employeeClass);
 
-  if (!getEmployees || getEmployees.length === 0) {
+  if (!employees || employees.length === 0) {
     return [];
   }
 
@@ -282,38 +395,28 @@ const handleSummarizeReport = async (
     ? getLastMonthDates()
     : { startLastMonth: null, endLastMonth: null };
 
-  const employeeDataArray = await Promise.all(
-    getEmployees.map(async (employee) => {
-      const promises = [
-        DTR.getDTRDetails(fromDate, toDate, employee.code, "", "", ""),
-        DTR.employeeOvertime(employee.code, payrollPeriod),
-      ];
+  const chuckSize = 100;
+  const employeeDataArray = [];
 
-      if (computeLate) {
-        promises.push(
-          DTR.getComputedLate(
-            startLastMonth,
-            endLastMonth,
-            employee.code,
-            "",
-            "computeLate",
-            "",
-          ),
-        );
-      }
+  for (let i = 0; i < employees.length; i += chuckSize) {
+    const chunk = employees.slice(i, i + chuckSize);
 
-      const results = await Promise.all(promises);
+    const chunkResults = await Promise.all(
+      chunk.map((employee) =>
+        processEmployee(
+          employee,
+          fromDate,
+          toDate,
+          payrollPeriod,
+          computeLate,
+          startLastMonth,
+          endLastMonth,
+        ),
+      ),
+    );
 
-      return {
-        code: employee.code,
-        dtr: dateFormatDtr(results[0]),
-        overtime: results[1],
-        ...(computeLate && results[2]?.[0]?.lateSum
-          ? { computedLate: results[2][0].lateSum }
-          : {}),
-      };
-    }),
-  );
+    employeeDataArray.push(...chunkResults);
+  }
 
   return employeeDataArray;
 };
@@ -792,6 +895,30 @@ const finalizeTImeData = async (req, res) => {
   }
 };
 
+// const fetchDTRDetails = async (dtrDate, employeeCode) => {
+//   const dtrDetails = await DTR.getDTRDetails(
+//     dtrDate,
+//     dtrDate,
+//     employeeCode,
+//     "",
+//     "",
+//     "",
+//   );
+
+//   if (!dtrDetails || dtrDetails.length === 0) {
+//     return {
+//       success: false,
+//       message: "No DTR found after operation",
+//     };
+//   }
+
+//   const formattedDtr = dateFormatDtr(dtrDetails);
+//   return {
+//     success: true,
+//     data: formattedDtr,
+//   };
+// };
+
 const fetchDTRDetails = async (dtrDate, employeeCode) => {
   const dtrDetails = await DTR.getDTRDetails(
     dtrDate,
@@ -809,10 +936,9 @@ const fetchDTRDetails = async (dtrDate, employeeCode) => {
     };
   }
 
-  const formattedDtr = dateFormatDtr(dtrDetails);
   return {
     success: true,
-    data: formattedDtr,
+    data: dtrDetails,
   };
 };
 
@@ -976,6 +1102,39 @@ const saveTimeData = async (req, res) => {
   }
 };
 
+const checkApproverOwnership = async (req, res) => {
+  const { employeeCode, approverCode } = req.body;
+  const { deptCode: employeeDeptCode } = req.user;
+
+  if (employeeDeptCode === "5040") {
+    return res.status(200).json({
+      success: true,
+      message: "Access granted - HR Department",
+    });
+  }
+
+  const employeeDept = await DTR.getEmployeeDepartment(employeeCode);
+  const approverDepartments = await hierarchy.getDepartments(approverCode);
+
+  const approverDeptCodes = approverDepartments.map((d) => d.deptCode);
+
+  const isOwner = employeeDept.some((emp) =>
+    approverDeptCodes.includes(emp.deptCode),
+  );
+
+  if (!isOwner) {
+    return res.status(400).json({
+      success: false,
+      message: "You are not allowed to view this employee's DTR",
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: "Access granted",
+  });
+};
+
 module.exports = {
   getDTRDetails,
   noDtrEmployee,
@@ -986,4 +1145,5 @@ module.exports = {
   finalizeTImeData,
   saveTimeData,
   residentFaculty,
+  checkApproverOwnership,
 };

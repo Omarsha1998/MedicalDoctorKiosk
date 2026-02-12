@@ -7,6 +7,244 @@ const orRecords = require("../models/orRecords.js");
 const ehrOrbitRecords = require("../models/ehrOrbitRecords.js");
 // const { schedule } = require("../../infirmary/controllers/ape/visit.js");
 // MODELS //
+const getUnencodedDischargeCases = async function (req, res) {
+  try {
+    const result = await sqlHelper.transact(async (txn) => {
+      // const { selectedPatientRow } = req.query;
+
+      // const sqlWhere = ``;
+      const args = [];
+      const options = {
+        top: "",
+        order: "",
+      };
+      // Return the clean query result directly
+      return await orRecords.selectUnencodedDischargeCases(
+        // sqlWhere,
+        args,
+        options,
+        txn,
+      );
+    });
+
+    return res.json(result); // This should now be safe
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: `Internal Server Error: ${error.message}` });
+  }
+};
+const getProceduresByCaseNo = async (proceCode, txn) => {
+  const sqlWhere = `and orbitOp.code = ? and orbitOp.active = ?`;
+  const args = [proceCode, 1];
+  const options = {
+    top: "",
+    order: "orbitOp.dateTimeCreated desc",
+  };
+
+  const result = await orRecords.selectPatientsWIthOperativeRecordstesting(
+    sqlWhere,
+    args,
+    options,
+    txn,
+  );
+
+  // return first record if multiple found
+  return result && result.length ? result[0] : null;
+};
+const enableEditingOperativeAccess = async function (req, res) {
+  const returnValue = await sqlHelper.transact(async (txn) => {
+    const {
+      reasonOfEditing,
+      categoryList,
+      selectedPatientRow,
+      // newAddedOpTechProcedures,
+    } = req.body;
+
+    try {
+      const activeUser = util.currentUserToken(req).code;
+
+      // const newStore = [selectedPatientRow];
+
+      // if (newStore.length > 0) {
+      //   console.log("NEW STORE", newStore);
+      // const forUpdate = newStore.filter((item) => !item. );
+
+      await orRecords.updatePatientInfo(
+        {
+          reactivateRemarks: reasonOfEditing,
+          reactivateEditing: true,
+          updatedBy: activeUser,
+        },
+        {
+          caseNo: selectedPatientRow.cASENO,
+          EncounterCode: selectedPatientRow.encounterCode,
+          code: categoryList,
+        },
+        txn,
+      );
+
+      // if (forUpdate.length > 0) {
+      //   for (const updateProcedure of forUpdate) {
+
+      //     const oldRecord = await getProceduresByCaseNo(
+      //       updateProcedure.code,
+      //       txn,
+      //     );
+
+      //     const fieldsToCheck = [
+      //       "procedureClassification",
+      //       "preOperativeDiagnosis",
+      //       "diagnosisProcedure",
+      //       "operativeDiagnosis",
+      //       "postOpDiagnosis",
+      //       "anesthesia",
+      //       "surgeryIndication",
+      //       "specimen",
+      //       "operativeTechnique",
+      //       "isBedsideProcedure",
+      //       "intraOperative",
+      //     ];
+      //     const modifiedData = {};
+
+      //     // Compare old vs new data
+      //     for (const field of fieldsToCheck) {
+      //       if (updateProcedure[field] !== oldRecord[field]) {
+      //         modifiedData[field] = {
+      //           old: oldRecord[field] || "",
+      //           new: updateProcedure[field] || "",
+      //         };
+      //       }
+      //     }
+
+      //     if (Object.keys(modifiedData).length > 0) {
+      //       await orRecords.updatePatientInfo(
+      //         {
+      //           procedureClassification:
+      //             updateProcedure.procedureClassification,
+      //           preOperativeDiagnosis: updateProcedure.preOperativeDiagnosis,
+      //           diagnosisProcedure: updateProcedure.diagnosisProcedure,
+      //           OperativeDiagnosis: updateProcedure.operativeDiagnosis,
+      //           postOpDiagnosis: updateProcedure.postOpDiagnosis,
+      //           anesthesia: updateProcedure.anesthesia,
+      //           surgeryIndication: updateProcedure.surgeryIndication,
+      //           specimen: updateProcedure.specimen,
+      //           isBedsideProcedure: updateProcedure.isBedsideProcedure,
+      //           intraOperative: updateProcedure.intraOperative,
+      //           operativeTechnique: updateProcedure.operativeTechnique,
+      //           opTechForm: true,
+      //           updatedBy: activeUser,
+      //           OpTechDateUpdated: util.currentDateTime(),
+      //         },
+      //         {
+      //           caseNo: updateProcedure.cASENO,
+      //           EncounterCode: updateProcedure.encounterCode,
+      //           code: updateProcedure.code,
+      //         },
+      //         txn,
+      //       );
+      //       // LOGS INSERT START
+      //       const groupInsertCode = await sqlHelper.generateUniqueCode(
+      //         "UERMMMC..OrbitOperativeLogs",
+      //         "GIC",
+      //         4,
+      //         txn,
+      //       );
+
+      //       for (const fieldName in modifiedData) {
+      //         const generatedCode = await sqlHelper.generateUniqueCode(
+      //           "UERMMMC..OrbitOperativeLogs",
+      //           "LOG",
+      //           4,
+      //           txn,
+      //         );
+
+      //         const change = modifiedData[fieldName];
+
+      //         const payload = {
+      //           code: generatedCode,
+      //           caseNO: selectedPatientRow.cASENO,
+      //           fieldName,
+      //           procedureCode: updateProcedure.code,
+      //           colValue: change.old,
+      //           newValue: change.new,
+      //           createdBy: activeUser,
+      //           groupCode: groupInsertCode,
+      //           operativeType: "opTech",
+      //         };
+
+      //         await orRecords.insertOperativeUpdatesLogs(payload, txn);
+      //       }
+      //       // LOGS INSERT END
+      //     }
+      //     // }
+
+      //   }
+      // }
+      // }
+
+      return res
+        .status(200)
+        .json({ success: true, message: "Update successful." });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  return returnValue;
+};
+
+const getMissingOpRecForm = async function (req, res) {
+  try {
+    const result = await sqlHelper.transact(async (txn) => {
+      const sqlWhere = ` and OpRecForm = 0 and CONVERT(char(8), datetimecreated, 112) BETWEEN '20251119' AND CONVERT(char(8), GETDATE(), 112)`;
+      const args = [];
+      const options = {
+        top: "",
+        order: "dateTimeCreated ASC",
+      };
+      // Return the clean query result directly
+      return await orRecords.selectMissingOpRecForm(
+        sqlWhere,
+        args,
+        options,
+        txn,
+      );
+    });
+
+    return res.json(result); // This should now be safe
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: `Internal Server Error: ${error.message}` });
+  }
+};
+
+const getEnabledDischargeCases = async function (req, res) {
+  try {
+    const result = await sqlHelper.transact(async (txn) => {
+      const sqlWhere = ` and reactivateEditing = ? `;
+      const args = [1];
+      const options = {
+        top: "",
+        order: "dateTimeCreated desc",
+      };
+      // Return the clean query result directly
+      return await orRecords.selectMissingOpRecForm(
+        sqlWhere,
+        args,
+        options,
+        txn,
+      );
+    });
+
+    return res.json(result); // This should now be safe
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: `Internal Server Error: ${error.message}` });
+  }
+};
 
 const checkProcedureExtinction = async function (
   selectedDiagnosisProcedure,
@@ -1523,24 +1761,6 @@ const modifyPatientDetails = async function (req, res) {
   return returnValue;
 };
 
-const getProceduresByCaseNo = async (proceCode, txn) => {
-  const sqlWhere = `and orbitOp.code = ? and orbitOp.active = ?`;
-  const args = [proceCode, 1];
-  const options = {
-    top: "",
-    order: "orbitOp.dateTimeCreated desc",
-  };
-
-  const result = await orRecords.selectPatientsWIthOperativeRecordstesting(
-    sqlWhere,
-    args,
-    options,
-    txn,
-  );
-
-  // return first record if multiple found
-  return result && result.length ? result[0] : null;
-};
 const putOpTechForms = async function (req, res) {
   const returnValue = await sqlHelper.transact(async (txn) => {
     const {
@@ -1609,33 +1829,33 @@ const putOpTechForms = async function (req, res) {
             //     "Procedure added; transaction ended to avoid duplicates",
             //   );
             // } else {
-              const operativeLogs = {
-                code: procedureGeneratedCode,
-                procedureClassification: newProcedure.procedureClassification,
-                EncounterCode: encounterCode,
-                preOperativeDiagnosis: newProcedure.preOperativeDiagnosis,
-                postOpDiagnosis: newProcedure.postOpDiagnosis,
-                diagnosisProcedure: newProcedure.diagnosisProcedure,
-                OperativeDiagnosis: newProcedure.operativeDiagnosis,
-                anesthesia: newProcedure.anesthesia,
-                // startDateTimeOperation: periodTime,
-                // endDateTimeOperation: endPeriodTime,
-                surgeryIndication: newProcedure.surgeryIndication,
-                specimen: newProcedure.specimen,
-                opTechForm: true,
-                isBedsideProcedure: newProcedure.isBedsideProcedure,
-                intraOperative: newProcedure.intraOperative,
-                operativeTechnique: newProcedure.operativeTechnique,
-                //         surgeryIndication: selectedPatientRow.surgeryIndication,
-                department: deptCodeofUser,
-                // anesthesiologist: selectedPatientRow.anesthesiologist,
-                // operativeTechnique: selectedPatientRow.operativeTechnique,
-                caseNo: selectedPatientRow.cASENO,
+            const operativeLogs = {
+              code: procedureGeneratedCode,
+              procedureClassification: newProcedure.procedureClassification,
+              EncounterCode: encounterCode,
+              preOperativeDiagnosis: newProcedure.preOperativeDiagnosis,
+              postOpDiagnosis: newProcedure.postOpDiagnosis,
+              diagnosisProcedure: newProcedure.diagnosisProcedure,
+              OperativeDiagnosis: newProcedure.operativeDiagnosis,
+              anesthesia: newProcedure.anesthesia,
+              // startDateTimeOperation: periodTime,
+              // endDateTimeOperation: endPeriodTime,
+              surgeryIndication: newProcedure.surgeryIndication,
+              specimen: newProcedure.specimen,
+              opTechForm: true,
+              isBedsideProcedure: newProcedure.isBedsideProcedure,
+              intraOperative: newProcedure.intraOperative,
+              operativeTechnique: newProcedure.operativeTechnique,
+              //         surgeryIndication: selectedPatientRow.surgeryIndication,
+              department: deptCodeofUser,
+              // anesthesiologist: selectedPatientRow.anesthesiologist,
+              // operativeTechnique: selectedPatientRow.operativeTechnique,
+              caseNo: selectedPatientRow.cASENO,
 
-                createdBy: activeUser,
-              };
+              createdBy: activeUser,
+            };
 
-              await orRecords.insertOperativeLogs(operativeLogs, txn);
+            await orRecords.insertOperativeLogs(operativeLogs, txn);
             // }
 
             if (newSurgicalTeams.length > 0) {
@@ -1852,102 +2072,940 @@ const putOpTechForms = async function (req, res) {
             //     "Cannot proceed. Name already in use. Refresh tab or rename.",
             //   );
             // } else {
-              const oldRecord = await getProceduresByCaseNo(
-                updateProcedure.code,
+            const oldRecord = await getProceduresByCaseNo(
+              updateProcedure.code,
+              txn,
+            );
+
+            const fieldsToCheck = [
+              "procedureClassification",
+              "preOperativeDiagnosis",
+              "diagnosisProcedure",
+              "operativeDiagnosis",
+              "postOpDiagnosis",
+              "anesthesia",
+              "surgeryIndication",
+              "specimen",
+              "operativeTechnique",
+              "isBedsideProcedure",
+              "intraOperative",
+            ];
+            const modifiedData = {};
+
+            // Compare old vs new data
+            for (const field of fieldsToCheck) {
+              if (updateProcedure[field] !== oldRecord[field]) {
+                modifiedData[field] = {
+                  old: oldRecord[field] || "",
+                  new: updateProcedure[field] || "",
+                };
+              }
+            }
+
+            if (Object.keys(modifiedData).length > 0) {
+              await orRecords.updatePatientInfo(
+                {
+                  procedureClassification:
+                    updateProcedure.procedureClassification,
+                  preOperativeDiagnosis: updateProcedure.preOperativeDiagnosis,
+                  diagnosisProcedure: updateProcedure.diagnosisProcedure,
+                  OperativeDiagnosis: updateProcedure.operativeDiagnosis,
+                  postOpDiagnosis: updateProcedure.postOpDiagnosis,
+                  anesthesia: updateProcedure.anesthesia,
+                  surgeryIndication: updateProcedure.surgeryIndication,
+                  specimen: updateProcedure.specimen,
+                  isBedsideProcedure: updateProcedure.isBedsideProcedure,
+                  intraOperative: updateProcedure.intraOperative,
+                  // startDateTimeOperation: periodTime,
+                  // endDateTimeOperation: endPeriodTime,
+                  operativeTechnique: updateProcedure.operativeTechnique,
+                  opTechForm: true,
+                  // anesthesiologist: selectedPatientRow.anesthesiologist,
+                  // operativeTechnique: selectedPatientRow.operativeTechnique,
+                  // caseNo: selectedPatientRow.cASENO,
+                  updatedBy: activeUser,
+                  OpTechDateUpdated: util.currentDateTime(),
+                },
+                {
+                  caseNo: updateProcedure.cASENO,
+                  EncounterCode: updateProcedure.encounterCode,
+                  code: updateProcedure.code,
+                },
+                txn,
+              );
+              // LOGS INSERT START
+              const groupInsertCode = await sqlHelper.generateUniqueCode(
+                "UERMMMC..OrbitOperativeLogs",
+                "GIC",
+                4,
                 txn,
               );
 
-              const fieldsToCheck = [
-                "procedureClassification",
-                "preOperativeDiagnosis",
-                "diagnosisProcedure",
-                "operativeDiagnosis",
-                "postOpDiagnosis",
-                "anesthesia",
-                "surgeryIndication",
-                "specimen",
-                "operativeTechnique",
-                "isBedsideProcedure",
-                "intraOperative",
-              ];
-              const modifiedData = {};
-
-              // Compare old vs new data
-              for (const field of fieldsToCheck) {
-                if (updateProcedure[field] !== oldRecord[field]) {
-                  modifiedData[field] = {
-                    old: oldRecord[field] || "",
-                    new: updateProcedure[field] || "",
-                  };
-                }
-              }
-
-              if (Object.keys(modifiedData).length > 0) {
-                await orRecords.updatePatientInfo(
-                  {
-                    procedureClassification:
-                      updateProcedure.procedureClassification,
-                    preOperativeDiagnosis:
-                      updateProcedure.preOperativeDiagnosis,
-                    diagnosisProcedure: updateProcedure.diagnosisProcedure,
-                    OperativeDiagnosis: updateProcedure.operativeDiagnosis,
-                    postOpDiagnosis: updateProcedure.postOpDiagnosis,
-                    anesthesia: updateProcedure.anesthesia,
-                    surgeryIndication: updateProcedure.surgeryIndication,
-                    specimen: updateProcedure.specimen,
-                    isBedsideProcedure: updateProcedure.isBedsideProcedure,
-                    intraOperative: updateProcedure.intraOperative,
-                    // startDateTimeOperation: periodTime,
-                    // endDateTimeOperation: endPeriodTime,
-                    operativeTechnique: updateProcedure.operativeTechnique,
-                    opTechForm: true,
-                    // anesthesiologist: selectedPatientRow.anesthesiologist,
-                    // operativeTechnique: selectedPatientRow.operativeTechnique,
-                    // caseNo: selectedPatientRow.cASENO,
-                    updatedBy: activeUser,
-                    OpTechDateUpdated: util.currentDateTime(),
-                  },
-                  {
-                    caseNo: updateProcedure.cASENO,
-                    EncounterCode: updateProcedure.encounterCode,
-                    code: updateProcedure.code,
-                  },
-                  txn,
-                );
-                // LOGS INSERT START
-                const groupInsertCode = await sqlHelper.generateUniqueCode(
+              for (const fieldName in modifiedData) {
+                const generatedCode = await sqlHelper.generateUniqueCode(
                   "UERMMMC..OrbitOperativeLogs",
-                  "GIC",
+                  "LOG",
                   4,
                   txn,
                 );
 
-                for (const fieldName in modifiedData) {
+                const change = modifiedData[fieldName];
+
+                const payload = {
+                  code: generatedCode,
+                  caseNO: selectedPatientRow.cASENO,
+                  fieldName,
+                  procedureCode: updateProcedure.code,
+                  colValue: change.old,
+                  newValue: change.new,
+                  createdBy: activeUser,
+                  groupCode: groupInsertCode,
+                  operativeType: "opTech",
+                };
+
+                await orRecords.insertOperativeUpdatesLogs(payload, txn);
+              }
+              // LOGS INSERT END
+            }
+            // }
+
+            if (newSurgicalTeams.length > 0) {
+              const resultsSurg = newSurgicalTeams.filter(
+                (team) =>
+                  forUpdate.some((proc) => proc.code === team.procedureCode) &&
+                  team.isNewSign,
+              );
+
+              if (resultsSurg.length > 0) {
+                for (const newSign of resultsSurg) {
                   const generatedCode = await sqlHelper.generateUniqueCode(
-                    "UERMMMC..OrbitOperativeLogs",
-                    "LOG",
+                    "UERMMMC..OrbitSignatories",
+                    "SIG",
                     4,
                     txn,
                   );
 
-                  const change = modifiedData[fieldName];
-
                   const payload = {
+                    procedureCode: newSign.procedureCode,
                     code: generatedCode,
+                    empCode: newSign.empCode?.cODE ?? "",
                     caseNO: selectedPatientRow.cASENO,
-                    fieldName,
-                    procedureCode: updateProcedure.code,
-                    colValue: change.old,
-                    newValue: change.new,
+                    name: newSign.empCode?.nAME ?? "",
                     createdBy: activeUser,
-                    groupCode: groupInsertCode,
-                    operativeType: "opTech",
+                    type: newSign.type,
                   };
 
-                  await orRecords.insertOperativeUpdatesLogs(payload, txn);
+                  await orRecords.insertSignatories(payload, txn);
                 }
-                // LOGS INSERT END
               }
+            }
+
+            if (newResidents.length > 0) {
+              const resultsSurg = newResidents.filter(
+                (team) =>
+                  forUpdate.some((proc) => proc.code === team.procedureCode) &&
+                  team.isNewSign,
+              );
+              if (resultsSurg.length > 0) {
+                for (const newSign of resultsSurg) {
+                  const generatedCode = await sqlHelper.generateUniqueCode(
+                    "UERMMMC..OrbitSignatories",
+                    "SIG",
+                    4,
+                    txn,
+                  );
+
+                  const payload = {
+                    procedureCode: newSign.procedureCode,
+                    code: generatedCode,
+                    empCode: newSign.empCode?.code ?? "",
+                    caseNO: selectedPatientRow.cASENO,
+                    name: newSign.empCode?.name ?? "",
+                    createdBy: activeUser,
+                    type: newSign.type,
+                  };
+
+                  await orRecords.insertSignatories(payload, txn);
+                }
+              }
+            }
+            if (newAnesthResidents.length > 0) {
+              const resultsSurg = newAnesthResidents.filter(
+                (team) =>
+                  forUpdate.some((proc) => proc.code === team.procedureCode) &&
+                  team.isNewSign,
+              );
+              if (resultsSurg.length > 0) {
+                for (const newSign of resultsSurg) {
+                  const generatedCode = await sqlHelper.generateUniqueCode(
+                    "UERMMMC..OrbitSignatories",
+                    "SIG",
+                    4,
+                    txn,
+                  );
+
+                  const payload = {
+                    procedureCode: newSign.procedureCode,
+                    code: generatedCode,
+                    empCode: newSign.empCode?.code ?? "",
+                    caseNO: selectedPatientRow.cASENO,
+                    name: newSign.empCode?.name ?? "",
+                    createdBy: activeUser,
+                    type: newSign.type,
+                  };
+
+                  await orRecords.insertSignatories(payload, txn);
+                }
+              }
+            }
+            if (newAssistantResidents.length > 0) {
+              const resultsSurg = newAssistantResidents.filter(
+                (team) =>
+                  forUpdate.some((proc) => proc.code === team.procedureCode) &&
+                  team.isNewSign,
+              );
+              if (resultsSurg.length > 0) {
+                for (const newSign of resultsSurg) {
+                  const generatedCode = await sqlHelper.generateUniqueCode(
+                    "UERMMMC..OrbitSignatories",
+                    "SIG",
+                    4,
+                    txn,
+                  );
+
+                  const payload = {
+                    procedureCode: newSign.procedureCode,
+                    code: generatedCode,
+                    empCode: newSign.empCode?.code ?? "",
+                    caseNO: selectedPatientRow.cASENO,
+                    name: newSign.empCode?.name ?? "",
+                    createdBy: activeUser,
+                    type: newSign.type,
+                  };
+
+                  await orRecords.insertSignatories(payload, txn);
+                }
+              }
+            }
+            if (newVisitingPrimarySurg.length > 0) {
+              const resultsSurg = newVisitingPrimarySurg.filter((team) =>
+                forUpdate.some((proc) => proc.code === team.procedureCode),
+              );
+              if (resultsSurg.length > 0) {
+                for (const newSign of resultsSurg) {
+                  const generatedCode = await sqlHelper.generateUniqueCode(
+                    "UERMMMC..OrbitSignatories",
+                    "SIG",
+                    4,
+                    txn,
+                  );
+
+                  const payload = {
+                    procedureCode: newSign.procedureCode,
+                    code: generatedCode,
+                    caseNO: selectedPatientRow.cASENO,
+                    name: newSign.name,
+                    createdBy: activeUser,
+                    type: newSign.type,
+                  };
+
+                  await orRecords.insertSignatories(payload, txn);
+                }
+              }
+            }
+            if (newVisitinSurg.length > 0) {
+              const resultsSurg = newVisitinSurg.filter((team) =>
+                forUpdate.some((proc) => proc.code === team.procedureCode),
+              );
+
+              if (resultsSurg.length > 0) {
+                for (const newSign of resultsSurg) {
+                  const generatedCode = await sqlHelper.generateUniqueCode(
+                    "UERMMMC..OrbitSignatories",
+                    "SIG",
+                    4,
+                    txn,
+                  );
+
+                  const payload = {
+                    procedureCode: newSign.procedureCode,
+                    code: generatedCode,
+                    caseNO: selectedPatientRow.cASENO,
+                    name: newSign.name,
+                    createdBy: activeUser,
+                    type: newSign.type,
+                  };
+                  await orRecords.insertSignatories(payload, txn);
+                }
+              }
+            }
+            if (newVisiAnest.length > 0) {
+              const forInsert = newVisiAnest.filter((item) => item.isNewSign);
+
+              const resultsSurg = forInsert.filter((team) =>
+                forUpdate.some((proc) => proc.code === team.procedureCode),
+              );
+              if (resultsSurg.length > 0) {
+                for (const newSign of resultsSurg) {
+                  const generatedCode = await sqlHelper.generateUniqueCode(
+                    "UERMMMC..OrbitSignatories",
+                    "SIG",
+                    4,
+                    txn,
+                  );
+
+                  const payload = {
+                    procedureCode: newSign.procedureCode,
+                    code: generatedCode,
+                    caseNO: selectedPatientRow.cASENO,
+                    name: newSign.name,
+                    createdBy: activeUser,
+                    type: newSign.type,
+                  };
+
+                  await orRecords.insertSignatories(payload, txn);
+                }
+              }
+            }
+            if (newSTeam.length > 0) {
+              const resultsSurg = newSTeam.filter(
+                (team) =>
+                  forUpdate.some((proc) => proc.code === team.procedureCode) &&
+                  team.isNewSign,
+              );
+
+              if (resultsSurg.length > 0) {
+                for (const newSign of resultsSurg) {
+                  const generatedCode = await sqlHelper.generateUniqueCode(
+                    "UERMMMC..OrbitSignatories",
+                    "SIG",
+                    4,
+                    txn,
+                  );
+
+                  const payload = {
+                    procedureCode: newSign.procedureCode,
+                    code: generatedCode,
+                    empCode: newSign.empCode?.cODE ?? "",
+                    caseNO: selectedPatientRow.cASENO,
+                    name: newSign.empCode?.nAME ?? "",
+                    createdBy: activeUser,
+                    type: newSign.type,
+                  };
+
+                  await orRecords.insertSignatories(payload, txn);
+                }
+              }
+            }
+            if (newAnessThe.length > 0) {
+              const resultsSurg = newAnessThe.filter((team) =>
+                forUpdate.some((proc) => proc.code === team.procedureCode),
+              );
+
+              if (resultsSurg.length > 0) {
+                for (const newSign of resultsSurg) {
+                  const generatedCode = await sqlHelper.generateUniqueCode(
+                    "UERMMMC..OrbitSignatories",
+                    "SIG",
+                    4,
+                    txn,
+                  );
+
+                  const payload = {
+                    procedureCode: newSign.procedureCode,
+                    code: generatedCode,
+                    empCode: newSign.empCode?.cODE ?? "",
+                    caseNO: selectedPatientRow.cASENO,
+                    name: newSign.empCode?.nAME ?? "",
+                    createdBy: activeUser,
+                    type: newSign.type,
+                  };
+
+                  await orRecords.insertSignatories(payload, txn);
+                }
+              }
+            }
+
+            if (ueSurgeonForRemoved.length > 0) {
+              const resultsSurg = ueSurgeonForRemoved.filter((team) =>
+                forUpdate.some((proc) => proc.code === team.procedureCode),
+              );
+
+              if (resultsSurg.length > 0) {
+                for (const newSign of resultsSurg) {
+                  await orRecords.updateSignatories(
+                    {
+                      active: false,
+                      updatedBy: activeUser,
+                    },
+                    {
+                      code: newSign.code,
+                    },
+                    txn,
+                  );
+                }
+              }
+            }
+            if (removedVisiSurg.length > 0) {
+              const resultsSurg = removedVisiSurg.filter((team) =>
+                forUpdate.some((proc) => proc.code === team.procedureCode),
+              );
+
+              if (resultsSurg.length > 0) {
+                for (const newSign of resultsSurg) {
+                  await orRecords.updateSignatories(
+                    {
+                      active: false,
+                      updatedBy: activeUser,
+                    },
+                    {
+                      code: newSign.code,
+                    },
+                    txn,
+                  );
+                }
+              }
+            }
+            if (removedVisiAness.length > 0) {
+              const resultsSurg = removedVisiAness.filter((team) =>
+                forUpdate.some((proc) => proc.code === team.procedureCode),
+              );
+
+              if (resultsSurg.length > 0) {
+                for (const newSign of resultsSurg) {
+                  await orRecords.updateSignatories(
+                    {
+                      active: false,
+                      updatedBy: activeUser,
+                    },
+                    {
+                      code: newSign.code,
+                    },
+                    txn,
+                  );
+                }
+              }
+            }
+            if (removedResidentsPayload.length > 0) {
+              const resultsSurg = removedResidentsPayload.filter((team) =>
+                forUpdate.some((proc) => proc.code === team.procedureCode),
+              );
+
+              if (resultsSurg.length > 0) {
+                for (const newSign of resultsSurg) {
+                  await orRecords.updateSignatories(
+                    {
+                      active: false,
+                      updatedBy: activeUser,
+                    },
+                    {
+                      code: newSign.code,
+                    },
+                    txn,
+                  );
+                }
+              }
+            }
+
+            if (removedAssistantResidentsPayload.length > 0) {
+              const resultsSurg = removedAssistantResidentsPayload.filter(
+                (team) =>
+                  forUpdate.some((proc) => proc.code === team.procedureCode),
+              );
+
+              if (resultsSurg.length > 0) {
+                for (const newSign of resultsSurg) {
+                  await orRecords.updateSignatories(
+                    {
+                      active: false,
+                      updatedBy: activeUser,
+                    },
+                    {
+                      code: newSign.code,
+                    },
+                    txn,
+                  );
+                }
+              }
+            }
+            if (removedAnesthesiologistResidentsPayload.length > 0) {
+              const resultsSurg =
+                removedAnesthesiologistResidentsPayload.filter((team) =>
+                  forUpdate.some((proc) => proc.code === team.procedureCode),
+                );
+
+              if (resultsSurg.length > 0) {
+                for (const newSign of resultsSurg) {
+                  await orRecords.updateSignatories(
+                    {
+                      active: false,
+                      updatedBy: activeUser,
+                    },
+                    {
+                      code: newSign.code,
+                    },
+                    txn,
+                  );
+                }
+              }
+            }
+            if (removeUeAnesthe.length > 0) {
+              const resultsSurg = removeUeAnesthe.filter((team) =>
+                forUpdate.some((proc) => proc.code === team.procedureCode),
+              );
+
+              if (resultsSurg.length > 0) {
+                for (const newSign of resultsSurg) {
+                  await orRecords.updateSignatories(
+                    {
+                      active: false,
+                      updatedBy: activeUser,
+                    },
+                    {
+                      code: newSign.code,
+                    },
+                    txn,
+                  );
+                }
+              }
+            }
+            if (removePrimaryVisiting.length > 0) {
+              const resultsSurg = removePrimaryVisiting.filter((team) =>
+                forUpdate.some((proc) => proc.code === team.procedureCode),
+              );
+
+              if (resultsSurg.length > 0) {
+                for (const newSign of resultsSurg) {
+                  await orRecords.updateSignatories(
+                    {
+                      active: false,
+                      updatedBy: activeUser,
+                    },
+                    {
+                      code: newSign.code,
+                    },
+                    txn,
+                  );
+                }
+              }
+            }
+
+            if (ueAssistPSurgRemoved.length > 0) {
+              const resultsSurg = ueAssistPSurgRemoved.filter((team) =>
+                forUpdate.some((proc) => proc.code === team.procedureCode),
+              );
+
+              if (resultsSurg.length > 0) {
+                for (const newSign of resultsSurg) {
+                  await orRecords.updateSignatories(
+                    {
+                      active: false,
+                      updatedBy: activeUser,
+                    },
+                    {
+                      code: newSign.code,
+                    },
+                    txn,
+                  );
+                }
+              }
+            }
+          }
+        }
+      }
+
+      return res
+        .status(200)
+        .json({ success: true, message: "Update successful." });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  return returnValue;
+};
+
+const updateOpTechAutoLock = async function (req, res) {
+  const returnValue = await sqlHelper.transact(async (txn) => {
+    const {
+      selectedPatientRow,
+      newAddedOpTechProcedures,
+      encounterCode,
+      newVisitinSurg,
+      removedVisiSurg,
+      newSTeam,
+      newAnessThe,
+      removeUeAnesthe,
+      newVisiAnest,
+      removedVisiAness,
+
+      newSurgicalTeams,
+      ueSurgeonForRemoved,
+      ueAssistPSurgRemoved,
+      newVisitingPrimarySurg,
+      removePrimaryVisiting,
+      newResidents,
+      removedResidentsPayload,
+      removedAssistantResidentsPayload,
+      removedAnesthesiologistResidentsPayload,
+      newAssistantResidents,
+      newAnesthResidents,
+    } = req.body;
+
+    try {
+      const activeUser = util.currentUserToken(req).code;
+      const deptCodeofUser = util.currentUserToken(req).deptCode;
+
+      const newStore = [newAddedOpTechProcedures];
+
+      if (newStore.length > 0) {
+        const forInsert = newStore.filter((item) => item.isNew);
+        const forUpdate = newStore.filter((item) => !item.isNew);
+        // ************************** INSERTION ONLY ********************
+        if (forInsert.length > 0) {
+          const prefixs = "PROCE";
+
+          const procedureGeneratedCode = await sqlHelper.generateUniqueCode(
+            "UERMMMC..OrbitOperatives",
+            prefixs.toUpperCase(),
+            2,
+            txn,
+          );
+          for (const newProcedure of forInsert) {
+            const operativeLogs = {
+              code: procedureGeneratedCode,
+              procedureClassification: newProcedure.procedureClassification,
+              EncounterCode: encounterCode,
+              preOperativeDiagnosis: newProcedure.preOperativeDiagnosis,
+              postOpDiagnosis: newProcedure.postOpDiagnosis,
+              diagnosisProcedure: newProcedure.diagnosisProcedure,
+              OperativeDiagnosis: newProcedure.operativeDiagnosis,
+              anesthesia: newProcedure.anesthesia,
+              // startDateTimeOperation: periodTime,
+              // endDateTimeOperation: endPeriodTime,
+              surgeryIndication: newProcedure.surgeryIndication,
+              specimen: newProcedure.specimen,
+              opTechForm: true,
+              isBedsideProcedure: newProcedure.isBedsideProcedure,
+              intraOperative: newProcedure.intraOperative,
+              operativeTechnique: newProcedure.operativeTechnique,
+              //         surgeryIndication: selectedPatientRow.surgeryIndication,
+              department: deptCodeofUser,
+              // anesthesiologist: selectedPatientRow.anesthesiologist,
+              // operativeTechnique: selectedPatientRow.operativeTechnique,
+              caseNo: selectedPatientRow.cASENO,
+
+              createdBy: activeUser,
+            };
+
+            await orRecords.insertOperativeLogs(operativeLogs, txn);
+            // }
+
+            if (newSurgicalTeams.length > 0) {
+              for (const newSign of newSurgicalTeams) {
+                const generatedCode = await sqlHelper.generateUniqueCode(
+                  "UERMMMC..OrbitSignatories",
+                  "SIG",
+                  4,
+                  txn,
+                );
+
+                const payload = {
+                  procedureCode: procedureGeneratedCode,
+                  code: generatedCode,
+                  empCode: newSign.empCode?.cODE ?? "",
+                  caseNO: selectedPatientRow.cASENO,
+                  name: newSign.empCode?.nAME ?? "",
+                  createdBy: activeUser,
+                  type: newSign.type,
+                };
+
+                await orRecords.insertSignatories(payload, txn);
+              }
+            }
+            if (newResidents.length > 0) {
+              for (const newSign of newResidents) {
+                const generatedCode = await sqlHelper.generateUniqueCode(
+                  "UERMMMC..OrbitSignatories",
+                  "SIG",
+                  4,
+                  txn,
+                );
+
+                const payload = {
+                  procedureCode: procedureGeneratedCode,
+                  code: generatedCode,
+                  empCode: newSign.empCode?.code ?? "",
+                  caseNO: selectedPatientRow.cASENO,
+                  name: newSign.empCode?.name ?? "",
+                  createdBy: activeUser,
+                  type: newSign.type,
+                };
+
+                await orRecords.insertSignatories(payload, txn);
+              }
+            }
+            if (newAssistantResidents.length > 0) {
+              for (const newSign of newAssistantResidents) {
+                const generatedCode = await sqlHelper.generateUniqueCode(
+                  "UERMMMC..OrbitSignatories",
+                  "SIG",
+                  4,
+                  txn,
+                );
+
+                const payload = {
+                  procedureCode: procedureGeneratedCode,
+                  code: generatedCode,
+                  empCode: newSign.empCode?.code ?? "",
+                  caseNO: selectedPatientRow.cASENO,
+                  name: newSign.empCode?.name ?? "",
+                  createdBy: activeUser,
+                  type: newSign.type,
+                };
+
+                await orRecords.insertSignatories(payload, txn);
+              }
+            }
+            if (newAnesthResidents.length > 0) {
+              for (const newSign of newAnesthResidents) {
+                const generatedCode = await sqlHelper.generateUniqueCode(
+                  "UERMMMC..OrbitSignatories",
+                  "SIG",
+                  4,
+                  txn,
+                );
+
+                const payload = {
+                  procedureCode: procedureGeneratedCode,
+                  code: generatedCode,
+                  empCode: newSign.empCode?.code ?? "",
+                  caseNO: selectedPatientRow.cASENO,
+                  name: newSign.empCode?.name ?? "",
+                  createdBy: activeUser,
+                  type: newSign.type,
+                };
+
+                await orRecords.insertSignatories(payload, txn);
+              }
+            }
+
+            if (newVisitingPrimarySurg.length > 0) {
+              for (const newSign of newVisitingPrimarySurg) {
+                const generatedCode = await sqlHelper.generateUniqueCode(
+                  "UERMMMC..OrbitSignatories",
+                  "SIG",
+                  4,
+                  txn,
+                );
+
+                const payload = {
+                  procedureCode: procedureGeneratedCode,
+                  code: generatedCode,
+                  caseNO: selectedPatientRow.cASENO,
+                  name: newSign.name,
+                  createdBy: activeUser,
+                  type: newSign.type,
+                };
+
+                await orRecords.insertSignatories(payload, txn);
+              }
+            }
+
+            if (newVisiAnest.length > 0) {
+              for (const newSign of newVisiAnest) {
+                const generatedCode = await sqlHelper.generateUniqueCode(
+                  "UERMMMC..OrbitSignatories",
+                  "SIG",
+                  4,
+                  txn,
+                );
+
+                const payload = {
+                  procedureCode: procedureGeneratedCode,
+                  code: generatedCode,
+                  caseNO: selectedPatientRow.cASENO,
+                  name: newSign.name,
+                  createdBy: activeUser,
+                  type: newSign.type,
+                };
+
+                await orRecords.insertSignatories(payload, txn);
+              }
+            }
+            if (newSTeam.length > 0) {
+              for (const newSign of newSTeam) {
+                const generatedCode = await sqlHelper.generateUniqueCode(
+                  "UERMMMC..OrbitSignatories",
+                  "SIG",
+                  4,
+                  txn,
+                );
+
+                const payload = {
+                  procedureCode: procedureGeneratedCode,
+                  code: generatedCode,
+                  empCode: newSign.empCode?.cODE ?? "",
+                  caseNO: selectedPatientRow.cASENO,
+                  name: newSign.empCode?.nAME ?? "",
+                  createdBy: activeUser,
+                  type: newSign.type,
+                };
+
+                await orRecords.insertSignatories(payload, txn);
+              }
+            }
+
+            if (newAnessThe.length > 0) {
+              for (const newSign of newAnessThe) {
+                const generatedCode = await sqlHelper.generateUniqueCode(
+                  "UERMMMC..OrbitSignatories",
+                  "SIG",
+                  4,
+                  txn,
+                );
+
+                const payload = {
+                  procedureCode: procedureGeneratedCode,
+                  code: generatedCode,
+                  empCode: newSign.empCode?.cODE ?? "",
+                  caseNO: selectedPatientRow.cASENO,
+                  name: newSign.empCode?.nAME ?? "",
+                  createdBy: activeUser,
+                  type: newSign.type,
+                };
+                await orRecords.insertSignatories(payload, txn);
+              }
+            }
+            if (newVisitinSurg.length > 0) {
+              for (const newSign of newVisitinSurg) {
+                const generatedCode = await sqlHelper.generateUniqueCode(
+                  "UERMMMC..OrbitSignatories",
+                  "SIG",
+                  4,
+                  txn,
+                );
+
+                const payload = {
+                  procedureCode: procedureGeneratedCode,
+                  code: generatedCode,
+                  caseNO: selectedPatientRow.cASENO,
+                  name: newSign.name,
+                  createdBy: activeUser,
+                  type: newSign.type,
+                };
+
+                await orRecords.insertSignatories(payload, txn);
+              }
+            }
+          }
+        }
+        // ************************** UPDATING ONLY ********************
+        if (forUpdate.length > 0) {
+          for (const updateProcedure of forUpdate) {
+            // const procedureCheckPoint = await checkProcedureExtinction(
+            //   updateProcedure.diagnosisProcedure,
+            //   selectedPatientRow.cASENO,
+            //   encounterCode,
+            //   txn,
+            // );
+
+            // if (procedureCheckPoint.length > 0) {
+            //   throw new Error(
+            //     "Cannot proceed. Name already in use. Refresh tab or rename.",
+            //   );
+            // } else {
+            const oldRecord = await getProceduresByCaseNo(
+              updateProcedure.code,
+              txn,
+            );
+
+            const fieldsToCheck = [
+              "procedureClassification",
+              "preOperativeDiagnosis",
+              "diagnosisProcedure",
+              "operativeDiagnosis",
+              "postOpDiagnosis",
+              "anesthesia",
+              "surgeryIndication",
+              "specimen",
+              "operativeTechnique",
+              "isBedsideProcedure",
+              "intraOperative",
+            ];
+            const modifiedData = {};
+
+            // Compare old vs new data
+            for (const field of fieldsToCheck) {
+              if (updateProcedure[field] !== oldRecord[field]) {
+                modifiedData[field] = {
+                  old: oldRecord[field] || "",
+                  new: updateProcedure[field] || "",
+                };
+              }
+            }
+
+            if (Object.keys(modifiedData).length > 0) {
+              await orRecords.updatePatientInfo(
+                {
+                  procedureClassification:
+                    updateProcedure.procedureClassification,
+                  preOperativeDiagnosis: updateProcedure.preOperativeDiagnosis,
+                  diagnosisProcedure: updateProcedure.diagnosisProcedure,
+                  OperativeDiagnosis: updateProcedure.operativeDiagnosis,
+                  postOpDiagnosis: updateProcedure.postOpDiagnosis,
+                  anesthesia: updateProcedure.anesthesia,
+                  surgeryIndication: updateProcedure.surgeryIndication,
+                  specimen: updateProcedure.specimen,
+                  isBedsideProcedure: updateProcedure.isBedsideProcedure,
+                  intraOperative: updateProcedure.intraOperative,
+                  operativeTechnique: updateProcedure.operativeTechnique,
+                  opTechForm: true,
+                  updatedBy: activeUser,
+                  OpTechDateUpdated: util.currentDateTime(),
+                  reactivateEditing: false,
+                },
+                {
+                  caseNo: updateProcedure.cASENO,
+                  EncounterCode: updateProcedure.encounterCode,
+                  code: updateProcedure.code,
+                },
+                txn,
+              );
+              // LOGS INSERT START
+              const groupInsertCode = await sqlHelper.generateUniqueCode(
+                "UERMMMC..OrbitOperativeLogs",
+                "GIC",
+                4,
+                txn,
+              );
+
+              for (const fieldName in modifiedData) {
+                const generatedCode = await sqlHelper.generateUniqueCode(
+                  "UERMMMC..OrbitOperativeLogs",
+                  "LOG",
+                  4,
+                  txn,
+                );
+
+                const change = modifiedData[fieldName];
+
+                const payload = {
+                  code: generatedCode,
+                  caseNO: selectedPatientRow.cASENO,
+                  fieldName,
+                  procedureCode: updateProcedure.code,
+                  colValue: change.old,
+                  newValue: change.new,
+                  createdBy: activeUser,
+                  groupCode: groupInsertCode,
+                  operativeType: "opTech",
+                };
+
+                await orRecords.insertOperativeUpdatesLogs(payload, txn);
+              }
+              // LOGS INSERT END
+            }
             // }
 
             if (newSurgicalTeams.length > 0) {
@@ -3967,146 +5025,145 @@ const toInactiveProcedure = async function (req, res) {
   return returnValue;
 };
 
-// const registerNewProcedure = async function (req, res) {
-//   const returnValue = await sqlHelper.transact(async (txn) => {
-//     const { selectedRowCase, diagnosisDetails } = req.body;
+const registerNewProcedure = async function (req, res) {
+  const returnValue = await sqlHelper.transact(async (txn) => {
+    const { selectedRowCase, diagnosisDetails } = req.body;
 
-//     try {
-//       const activeUser = util.currentUserToken(req).code;
-//       const deptCodeofUser = util.currentUserToken(req).deptCode;
+    try {
+      const activeUser = util.currentUserToken(req).code;
+      const deptCodeofUser = util.currentUserToken(req).deptCode;
 
-//       const prefixs = "PROCE";
-//       const procedureGeneratedCode = await sqlHelper.generateUniqueCode(
-//         "UERMMMC..OrbitOperatives",
-//         prefixs.toUpperCase(),
-//         2,
-//         txn,
-//       );
+      const prefixs = "PROCE";
+      const procedureGeneratedCode = await sqlHelper.generateUniqueCode(
+        "UERMMMC..OrbitOperatives",
+        prefixs.toUpperCase(),
+        2,
+        txn,
+      );
 
-//       const operativeLogs = {
-//         code: procedureGeneratedCode,
-//         procedureClassification: diagnosisDetails.procedureClassification,
-//         EncounterCode: selectedRowCase.encounterCode,
-//         preOperativeDiagnosis: diagnosisDetails.preOperativeDiagnosis,
-//         postOpDiagnosis: diagnosisDetails.postOpDiagnosis,
-//         diagnosisProcedure: diagnosisDetails.diagnosisProcedure,
-//         OperativeDiagnosis: diagnosisDetails.operativeDiagnosis,
-//         anesthesia: diagnosisDetails.anesthesia,
-//         surgeryIndication: diagnosisDetails.surgeryIndication,
-//         specimen: diagnosisDetails.specimen,
-//         opTechForm: true,
-//         operativeTechnique: diagnosisDetails.operativeTechnique,
-//         department: deptCodeofUser,
-//         caseNo: selectedRowCase.cASENO,
+      const operativeLogs = {
+        code: procedureGeneratedCode,
+        procedureClassification: diagnosisDetails.procedureClassification,
+        EncounterCode: selectedRowCase.encounterCode,
+        preOperativeDiagnosis: diagnosisDetails.preOperativeDiagnosis,
+        postOpDiagnosis: diagnosisDetails.postOpDiagnosis,
+        diagnosisProcedure: diagnosisDetails.diagnosisProcedure,
+        OperativeDiagnosis: diagnosisDetails.operativeDiagnosis,
+        anesthesia: diagnosisDetails.anesthesia,
+        surgeryIndication: diagnosisDetails.surgeryIndication,
+        specimen: diagnosisDetails.specimen,
+        opTechForm: true,
+        operativeTechnique: diagnosisDetails.operativeTechnique,
+        department: deptCodeofUser,
+        caseNo: selectedRowCase.cASENO,
 
-//         createdBy: activeUser,
-//       };
+        createdBy: activeUser,
+      };
 
-//       // await orRecords.insertOperativeLogs(operativeLogs, txn);
+      await orRecords.insertOperativeLogs(operativeLogs, txn);
 
-//       // console.log("operativeLogs", operativeLogs);
-//       const consultants = diagnosisDetails.ueConsultantPrimary;
-//       const primaryResident = diagnosisDetails.ueResidentPrimary;
-//       const assistantConsultants = diagnosisDetails.ueConsultantAsst;
-//       const assistantResident = diagnosisDetails.ueResidentAsst;
-//       if (consultants.length > 0) {
-//         for (const primaryConsults of consultants) {
-//           const generatedCode = await sqlHelper.generateUniqueCode(
-//             "UERMMMC..OrbitSignatories",
-//             "SIG",
-//             4,
-//             txn,
-//           );
-//           const consType = "ueSurg";
-//           const payload = {
-//             code: generatedCode,
-//             empCode: primaryConsults.cODE ?? "",
-//             procedureCode: procedureGeneratedCode,
-//             caseNO: selectedRowCase.cASENO,
-//             name: primaryConsults.nAME ?? "",
-//             createdBy: activeUser,
-//             type: consType,
-//           };
+      // const consultants = diagnosisDetails.ueConsultantPrimary;
+      // const primaryResident = diagnosisDetails.ueResidentPrimary;
+      // const assistantConsultants = diagnosisDetails.ueConsultantAsst;
+      // const assistantResident = diagnosisDetails.ueResidentAsst;
+      // if (consultants.length > 0) {
+      //   for (const primaryConsults of consultants) {
+      //     const generatedCode = await sqlHelper.generateUniqueCode(
+      //       "UERMMMC..OrbitSignatories",
+      //       "SIG",
+      //       4,
+      //       txn,
+      //     );
+      //     const consType = "ueSurg";
+      //     const payload = {
+      //       code: generatedCode,
+      //       empCode: primaryConsults.cODE ?? "",
+      //       procedureCode: procedureGeneratedCode,
+      //       caseNO: selectedRowCase.cASENO,
+      //       name: primaryConsults.nAME ?? "",
+      //       createdBy: activeUser,
+      //       type: consType,
+      //     };
 
-//           // await orRecords.insertSignatories(payload, txn);
-//         }
-//       }
-//       if (primaryResident.length > 0) {
-//         for (const primaryConsults of primaryResident) {
-//           const generatedCode = await sqlHelper.generateUniqueCode(
-//             "UERMMMC..OrbitSignatories",
-//             "SIG",
-//             4,
-//             txn,
-//           );
-//           const consType = "ueResidents";
-//           const payload = {
-//             code: generatedCode,
-//             empCode: primaryConsults.cODE ?? "",
-//             procedureCode: procedureGeneratedCode,
-//             caseNO: selectedRowCase.cASENO,
-//             name: primaryConsults.nAME ?? "",
-//             createdBy: activeUser,
-//             type: consType,
-//           };
+      //     await orRecords.insertSignatories(payload, txn);
+      //   }
+      // }
+      // if (primaryResident.length > 0) {
+      //   for (const primaryConsults of primaryResident) {
+      //     const generatedCode = await sqlHelper.generateUniqueCode(
+      //       "UERMMMC..OrbitSignatories",
+      //       "SIG",
+      //       4,
+      //       txn,
+      //     );
+      //     const consType = "ueResidents";
+      //     const payload = {
+      //       code: generatedCode,
+      //       empCode: primaryConsults.cODE ?? "",
+      //       procedureCode: procedureGeneratedCode,
+      //       caseNO: selectedRowCase.cASENO,
+      //       name: primaryConsults.nAME ?? "",
+      //       createdBy: activeUser,
+      //       type: consType,
+      //     };
 
-//           // await orRecords.insertSignatories(payload, txn);
-//         }
-//       }
-//       if (assistantConsultants.length > 0) {
-//         for (const primaryConsults of assistantConsultants) {
-//           const generatedCode = await sqlHelper.generateUniqueCode(
-//             "UERMMMC..OrbitSignatories",
-//             "SIG",
-//             4,
-//             txn,
-//           );
-//           const consType = "ueAsstSurg";
-//           const payload = {
-//             code: generatedCode,
-//             empCode: primaryConsults.cODE ?? "",
-//             procedureCode: procedureGeneratedCode,
-//             caseNO: selectedRowCase.cASENO,
-//             name: primaryConsults.nAME ?? "",
-//             createdBy: activeUser,
-//             type: consType,
-//           };
+      //     await orRecords.insertSignatories(payload, txn);
+      //   }
+      // }
+      // if (assistantConsultants.length > 0) {
+      //   for (const primaryConsults of assistantConsultants) {
+      //     const generatedCode = await sqlHelper.generateUniqueCode(
+      //       "UERMMMC..OrbitSignatories",
+      //       "SIG",
+      //       4,
+      //       txn,
+      //     );
+      //     const consType = "ueAsstSurg";
+      //     const payload = {
+      //       code: generatedCode,
+      //       empCode: primaryConsults.cODE ?? "",
+      //       procedureCode: procedureGeneratedCode,
+      //       caseNO: selectedRowCase.cASENO,
+      //       name: primaryConsults.nAME ?? "",
+      //       createdBy: activeUser,
+      //       type: consType,
+      //     };
 
-//           // await orRecords.insertSignatories(payload, txn);
-//         }
-//       }
-//       if (assistantResident.length > 0) {
-//         for (const primaryConsults of assistantResident) {
-//           const generatedCode = await sqlHelper.generateUniqueCode(
-//             "UERMMMC..OrbitSignatories",
-//             "SIG",
-//             4,
-//             txn,
-//           );
-//           const consType = "assistantResidents";
-//           const payload = {
-//             code: generatedCode,
-//             empCode: primaryConsults.cODE ?? "",
-//             procedureCode: procedureGeneratedCode,
-//             caseNO: selectedRowCase.cASENO,
-//             name: primaryConsults.nAME ?? "",
-//             createdBy: activeUser,
-//             type: consType,
-//           };
+      //     await orRecords.insertSignatories(payload, txn);
+      //   }
+      // }
+      // if (assistantResident.length > 0) {
+      //   for (const primaryConsults of assistantResident) {
+      //     const generatedCode = await sqlHelper.generateUniqueCode(
+      //       "UERMMMC..OrbitSignatories",
+      //       "SIG",
+      //       4,
+      //       txn,
+      //     );
+      //     const consType = "assistantResidents";
+      //     const payload = {
+      //       code: generatedCode,
+      //       empCode: primaryConsults.cODE ?? "",
+      //       procedureCode: procedureGeneratedCode,
+      //       caseNO: selectedRowCase.cASENO,
+      //       name: primaryConsults.nAME ?? "",
+      //       createdBy: activeUser,
+      //       type: consType,
+      //     };
 
-//           // await orRecords.insertSignatories(payload, txn);
-//         }
-//       }
-//       return res
-//         .status(200)
-//         .json({ success: true, message: "Update successful." });
-//     } catch (error) {
-//       return res.status(500).json({ error: error.message });
-//     }
-//   });
+      //     await orRecords.insertSignatories(payload, txn);
+      //   }
+      // }
+      return res
+        .status(200)
+        .json({ success: true, message: "Update successful." });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  });
 
-//   return returnValue;
-// };
+  return returnValue;
+};
 
 module.exports = {
   getPatientDetails,
@@ -4161,5 +5218,11 @@ module.exports = {
 
   checkProcedureExtinction,
   //register
-  // registerNewProcedure,
+  registerNewProcedure,
+
+  getMissingOpRecForm,
+  enableEditingOperativeAccess,
+  updateOpTechAutoLock,
+  getEnabledDischargeCases,
+  getUnencodedDischargeCases,
 };

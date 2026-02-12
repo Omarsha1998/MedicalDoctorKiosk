@@ -83,7 +83,8 @@ const selectStudentApplications = async function (
           cast (1 as bit)
         end
       specialNeeds from UERMOnlineAdmission..PersonalInfo b
-       where b.Ref_Number = a.REF_NUMBER) specialNeeds
+       where b.Ref_Number = a.REF_NUMBER) specialNeeds,
+      orNumberApplicationFee
     from UERMOnlineAdmission..vw_ApplicationsV2 a
     WHERE ${conditions}
     ${util.empty(options.order) ? "" : `order by ${options.order}`}

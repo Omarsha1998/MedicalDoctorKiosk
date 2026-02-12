@@ -16,38 +16,45 @@ const selectTestComponents = async function (
         a.code testCode, 
         a.name, 
         a.departmentCode, 
-        a.component, 
+        a.component,
+        a.formMainComponent, 
         a.alternativeTestName,
         a.resultComponent, 
         a.smsResultFormat,
+        a.displayAllConsultants,
+        b.id testComponentId,
         b.code testComponentCode, 
         b.name testComponentName,  
+        b.description testComponentDescription,  
         b.sequence, 
         b.groupTitle, 
         b.inputType, 
         b.versionSetId, 
         b.defaultValue,
-        b.applicableChargeId,
         b.options,
         b.required,
         b.allowPrintout, 
+        b.disabled,
         b.showName,
-        c.headerHtml,
-        c.contentHtml,
-        c.footerHtml,
         d.id referenceRangeId,
         d.ageMinDays,
         d.ageMaxDays,
         d.normalMin,
         d.normalMax,
+        d.criticalMin,
+        d.criticalMax,
+        d.delimiter,
         d.unit,
+        d.overrideOldRange,
         b.active, 
         b.dateTimeCreated, 
         b.dateTimeUpdated 
+        -- c.headerHtml,
+        -- c.contentHtml,
+        -- c.footerHtml,
       from 
         UERMResults..Tests a 
         join UERMResults..TestComponents b on b.TestCode = a.Code 
-        left join UERMResults..TestTemplates c on c.TestCode = a.code and c.active = 1
         left join UERMResults..TestComponentReferenceRanges d on d.TestComponentId = b.id 
         ${joinCondition}
       where 1=1 ${conditions}
@@ -107,7 +114,42 @@ const selectTestComponentFlagging = async function (
   }
 };
 
+const selectTestTemplate = async function (conditions, args, options, txn) {
+  try {
+    const testTemplate = await sqlHelper.query(
+      `select 
+        ${util.empty(options.top) ? "" : `TOP(${options.top})`}
+        a.id,
+        a.testCode,
+        a.headerHtml,
+        a.contentHtml,
+        a.footerHtml,
+        a.versionSetId,
+        b.currentVersion,
+        a.active,
+        a.createdBy,
+        a.updatedBy,
+        a.dateTimeCreated,
+        a.dateTimeUpdated,
+        a.remarks
+      from 
+      UERMResults..TestTemplates a
+      left join UERMResults..VersionSets b on b.id = a.versionSetId and b.active = 1
+      where 1=1 ${conditions}
+      ${util.empty(options.order) ? "" : `order by ${options.order}`}`,
+      args,
+      txn,
+    );
+
+    return testTemplate;
+  } catch (error) {
+    console.log(error);
+    return error;
+  }
+};
+
 module.exports = {
   selectTestComponents,
   selectTestComponentFlagging,
+  selectTestTemplate,
 };

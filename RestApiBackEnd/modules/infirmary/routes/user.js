@@ -10,10 +10,16 @@ const userController = require("../controllers/user.js");
 
 router.get("/", validateAccessToken, checkWhiteList, userController.get);
 
+router.get(
+  "/head-doctor",
+  validateAccessToken,
+  checkWhiteList,
+  userController.getHeadDoctor,
+);
+
 router.get("/renew-access-token", userController.renewAccessToken);
 
 router.post("/", validateAccessToken, checkWhiteList, userController.add);
-
 router.post("/login", userController.authenticate);
 
 router.post(

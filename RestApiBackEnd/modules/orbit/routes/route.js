@@ -1,7 +1,7 @@
 const { Router } = require("express");
 // const jobOrderController = require("../controllers/jobOrderController");
 const orPatientRecordsController = require("../controllers/orPatientRecordsController");
-
+const orSchedController = require("../controllers/orSchedController");
 // const accessRightsController = require("../controllers/accessRightsController");
 
 // const accessRightsController = require("../../access-rights/controllers/accessRightsController"); // boiler temp access right
@@ -10,11 +10,127 @@ const accessUserRole = require("../controllers/accessRightsController"); //own a
 
 const { validateAccessToken } = require("../../../helpers/crypto");
 // const { tryCatch } = require("../../../helpers/util");
+// const { tryCatch } = require("../../../helpers/util");
 
 const router = Router();
 // router.get("/qr-test", emailController.generateTestQr);
 // ********************* GET ***************************
+router.get(
+  "/appointee",
+  validateAccessToken,
+  orSchedController.getAppointeeDept,
+);
 
+router.get("/px-tats", validateAccessToken, orSchedController.getTATDatas);
+
+router.get(
+  "/px-tats-specific",
+  validateAccessToken,
+  orSchedController.getSpecificTAT,
+);
+
+router.post(
+  "/initial-posting-schedule",
+  validateAccessToken,
+  orSchedController.postInitialSched,
+);
+router.post(
+  "/re-sched-posting",
+  validateAccessToken,
+  orSchedController.reschedulePosting,
+);
+router.put(
+  "/update-arrived-or",
+  validateAccessToken,
+  orSchedController.putArrivedInOr,
+);
+router.put(
+  "/update-locked-open",
+  validateAccessToken,
+  orSchedController.putLocked,
+);
+router.put(
+  "/update-locked-inactive",
+  validateAccessToken,
+  orSchedController.putInactivate,
+);
+
+router.put(
+  "/update-initial-schedule",
+  validateAccessToken,
+  orSchedController.putInitialSched,
+);
+router.put(
+  "/modifying-details",
+  validateAccessToken,
+  orSchedController.updateDetails,
+);
+router.put(
+  "/put-track-progress",
+  validateAccessToken,
+  orSchedController.putTrackProgress,
+);
+router.put(
+  "/update-initial-schedule-alias",
+  validateAccessToken,
+  orSchedController.putAliasScheduling,
+);
+router.put(
+  "/update-initial-schedule-hims-verified",
+  validateAccessToken,
+  orSchedController.putInitialSchedHIMSVerified,
+);
+router.put(
+  "/rescheduled-or",
+  validateAccessToken,
+  orSchedController.putRescheduled,
+);
+router.get(
+  "/get-confirmed-scheds",
+  validateAccessToken,
+  orSchedController.getTodayConfirmedSchedule,
+);
+router.get(
+  "/get-completed-inactive-scheds",
+  validateAccessToken,
+  orSchedController.getCompletedORschedules,
+);
+router.get(
+  "/check-scheds-of-case",
+  validateAccessToken,
+  orSchedController.getSchedsOfSelectedCase,
+);
+router.get(
+  "/sched-custom-search",
+  validateAccessToken,
+  orSchedController.getSchedLogProgessTAT,
+  // getSchedLogProgessTAT
+);
+router.get(
+  "/log-audit-trail",
+  validateAccessToken,
+  orSchedController.getAuditTrail,
+);
+router.get(
+  "/px-admitted",
+  validateAccessToken,
+  orSchedController.getAdmittedPx,
+);
+router.get(
+  "/get-initial-schedule",
+  validateAccessToken,
+  orSchedController.getInitialSchedule,
+);
+router.get(
+  "/missed-oprecforms",
+  validateAccessToken,
+  orPatientRecordsController.getMissingOpRecForm,
+);
+router.get(
+  "/enabled-dis-cases",
+  validateAccessToken,
+  orPatientRecordsController.getEnabledDischargeCases,
+);
 router.get(
   "/test-ehr-data",
   validateAccessToken,
@@ -109,7 +225,7 @@ router.get(
 
 router.get(
   "/ue-doctors-list",
-  validateAccessToken,
+  // validateAccessToken,
   orPatientRecordsController.getSurgeons,
 );
 router.get(
@@ -117,7 +233,11 @@ router.get(
   validateAccessToken,
   orPatientRecordsController.getSurgeonsSelection,
 );
-
+router.get(
+  "/unencoded-discharge-cases",
+  validateAccessToken,
+  orPatientRecordsController.getUnencodedDischargeCases,
+);
 router.get(
   "/ue-anesthe-list",
   validateAccessToken,
@@ -224,6 +344,16 @@ router.put(
   orPatientRecordsController.putOpTechForms,
 );
 router.put(
+  "/update-op-tech-f-auto-lock",
+  validateAccessToken,
+  orPatientRecordsController.updateOpTechAutoLock,
+);
+router.put(
+  "/enable-editing-operative-access",
+  validateAccessToken,
+  orPatientRecordsController.enableEditingOperativeAccess,
+);
+router.put(
   "/it-support-optech",
   validateAccessToken,
   orPatientRecordsController.itMaintenanceUpdateOpTech,
@@ -246,11 +376,11 @@ router.put(
 );
 
 //register
-// router.post(
-//   "/reg-new-proce",
-//   validateAccessToken,
-//   orPatientRecordsController.registerNewProcedure,
-// );
+router.post(
+  "/reg-new-proce",
+  validateAccessToken,
+  orPatientRecordsController.registerNewProcedure,
+);
 
 // updateSponges
 

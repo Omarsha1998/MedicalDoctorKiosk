@@ -110,6 +110,8 @@ export default {
       data,
       token
     );
+
+    return response;
   },
 
   async doctorContacts({}, doctorEhrCode) {
@@ -152,6 +154,26 @@ export default {
 
   async deptSpecOption({}, data) {
     const response = await helper.endPointCallGet("deptSpecOption");
+    return response;
+  },
+
+  async resetSecretaryPassword({}, data) {
+    const token = Cookies.get("token");
+    const response = await helper.endPointCallPost(
+      "resetSecretaryPassword",
+      data,
+      token
+    );
+    return response;
+  },
+
+  async removeSecretary({}, data) {
+    const token = Cookies.get("token");
+    const response = await helper.endPointCallPost(
+      "removeSecretary",
+      data,
+      token
+    );
     return response;
   },
 

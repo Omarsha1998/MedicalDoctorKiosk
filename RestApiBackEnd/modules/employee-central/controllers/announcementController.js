@@ -123,7 +123,6 @@ const formatDate = ({ date, timeOnly = false, dateOnly = false }) => {
 
   if (isNaN(d)) return null;
 
-  // 🕒 TIME ONLY
   if (timeOnly) {
     let hours = d.getHours();
     const minutes = d.getMinutes().toString().padStart(2, "0");
@@ -548,8 +547,9 @@ const verifyEventOwnership = async (loggedUser, id, res) => {
   return true;
 };
 
-const executeEventUpdate = async (updateData, whereConditions, txn) => {
+const executeEventUpdate = async (table, updateData, whereConditions, txn) => {
   const result = await Announcement.updateEvent(
+    table,
     updateData,
     whereConditions,
     txn,
@@ -568,10 +568,12 @@ const removeSetSchedule = async (req, res) => {
   const { id } = req.body;
 
   const isAuthorized = await verifyEventOwnership(loggedUser, id, res);
+
   if (!isAuthorized) return;
 
   const updateStatus = await sqlHelper.transact(async (txn) => {
     return await executeEventUpdate(
+      "HR..TrainingCalendar",
       { Active: 0, UpdatedBy: loggedUser },
       { Id: id, CreatedBy: loggedUser },
       txn,
@@ -639,13 +641,21 @@ const updateSetSchedule = async (req, res) => {
       updateData.EventFileId = null;
     }
 
-    const eventUpdateResult = await Announcement.updateEvent(
+    const eventUpdateResult = await executeEventUpdate(
       "HR..TrainingCalendar",
       updateData,
       { Id: id, CreatedBy: loggedUser },
       txn,
       "DateUpdated",
     );
+
+    // const eventUpdateResult = await Announcement.updateEvent(
+    //   "HR..TrainingCalendar",
+    //   updateData,
+    //   { Id: id, CreatedBy: loggedUser },
+    //   txn,
+    //   "DateUpdated",
+    // );
 
     if (!eventUpdateResult) {
       throw new Error("Event update failed.");
@@ -654,19 +664,33 @@ const updateSetSchedule = async (req, res) => {
     if (fileData && Object.keys(fileData).length > 0) {
       const { fileName, fileSize, fileType, fileContent } = fileData;
 
-      await Announcement.updateEvent(
+      await executeEventUpdate(
         "HR..EventFiles",
         {
           Name: fileName,
           Size: fileSize,
           Type: fileType,
           Content: Buffer.from(fileContent, "base64"),
-          UploadedBy: loggedUser,
+          UpdatedBy: loggedUser,
         },
         { Id: eventFileId },
         txn,
-        "DateTimeUploaded",
+        "DateUpdated",
       );
+
+      // await Announcement.updateEvent(
+      //   "HR..EventFiles",
+      //   {
+      //     Name: fileName,
+      //     Size: fileSize,
+      //     Type: fileType,
+      //     Content: Buffer.from(fileContent, "base64"),
+      //     UploadedBy: loggedUser,
+      //   },
+      //   { Id: eventFileId },
+      //   txn,
+      //   "DateTimeUploaded",
+      // );
     }
 
     return eventUpdateResult;

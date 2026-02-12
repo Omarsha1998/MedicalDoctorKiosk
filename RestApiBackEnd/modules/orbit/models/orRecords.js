@@ -1,5 +1,82 @@
 const util = require("../../../helpers/util");
 const sqlHelper = require("../../../helpers/sql");
+const selectUnencodedDischargeCases = async function (
+  // conditions,
+  args,
+  options,
+  txn,
+) {
+  return await sqlHelper.query(
+    `SELECT
+      ${util.empty(options.top) ? "" : `TOP(${options.top})`}
+ cases.CASENO, cases.datead,  cases.ADMITTED_BY, cases.DISPOSITION,
+      cases.DISCHARGE,
+      cases.DATEDIS,
+         cases.patienttype,
+      cases.patient_category,
+      cases.last_room,
+	  CONCAT(px_info.LASTNAME,', ', px_info.FIRSTNAME, ' ', px_info.MIDDLENAME) AS PATIENTNAME,
+       CONCAT(px_info.AGE, '/',LEFT( px_info.SEX, 1)) AS sex_age,
+
+         	  cases.ADMITTED_BY,
+      px_info.LASTNAME,
+       px_info.FIRSTNAME,
+        px_info.MIDDLENAME,
+      px_info.DBIRTH,
+      px_info.SEX,
+       px_info.AGE,
+          px_info.PATIENTNO,
+      px_info.ADDRESS,
+	  phic_codes.PHIC_DESC,
+      diagnosis.ADMISSION,
+      diagnosis.FINAL
+FROM [UERMMMC].[dbo].[CASES] cases
+ JOIN [UERMMMC].[dbo].[PATIENTINFO] px_info ON cases.PATIENTNO = px_info.PATIENTNO
+  JOIN [UERMMMC].[dbo].[PHIC_CODES] phic_codes ON cases.PHIC_CODE = phic_codes.PHIC_CODE
+    JOIN [UERMMMC].[dbo].[DIAGNOSIS] diagnosis ON cases.CASENO = diagnosis.CASENO
+    
+WHERE NOT EXISTS (
+        SELECT 1 
+        FROM  [UERMMMC].[dbo].[OrbitOperatives] orbitOp
+        WHERE cases.CASENO = orbitOp.caseNo
+    )
+    AND cases.CASENO NOT LIKE '%w'
+    AND cases.DISCHARGE = 'Y'
+    AND cases.DATEDIS BETWEEN DATEADD(MONTH, -1, GETDATE())
+                         AND DATEADD(HOUR, -5, GETDATE()) 
+  
+    ${util.empty(options.order) ? "" : `ORDER BY ${options.order}`}
+    `,
+    args,
+    txn,
+  );
+};
+
+const selectMissingOpRecForm = async function (conditions, args, options, txn) {
+  return await sqlHelper.query(
+    `SELECT
+      ${util.empty(options.top) ? "" : `TOP(${options.top})`}
+dateTimeCreated
+,caseNo
+,code
+,encounterCode
+,diagnosisProcedure
+,department
+
+,isBedsideProcedure
+,opTechForm
+,opRecForm
+,reactivateEditing
+,reactivateRemarks
+     
+  FROM [UERMMMC].[dbo].[OrbitOperatives]
+    WHERE 1=1 ${conditions}
+    ${util.empty(options.order) ? "" : `ORDER BY ${options.order}`}
+    `,
+    args,
+    txn,
+  );
+};
 
 const selectProcedureName = async function (conditions, args, options, txn) {
   return await sqlHelper.query(
@@ -145,7 +222,8 @@ const selectPatientRecords = async function (conditions, args, options, txn) {
      
       orbitOp.medications,
      
-    
+      orbitOp.reactivateEditing,
+        orbitOp.reactivateRemarks,
       orbitOp.createdBy
 
     FROM [UERMMMC].[dbo].[CASES] cases
@@ -202,7 +280,8 @@ orbitOp.remarks,
       
       orbitOp.medications,
    
-    
+       orbitOp.reactivateEditing,
+        orbitOp.reactivateRemarks,
       orbitOp.createdBy,
 
              px_info.AGE,
@@ -491,7 +570,8 @@ const selectTestREcords = async function (conditions, args, options, txn) {
         orbitOp.operations,
       
         orbitOp.medications,
-       
+          orbitOp.reactivateEditing,
+        orbitOp.reactivateRemarks,
         orbitOp.active,
       
         orbitSign.surgicalTeams
@@ -540,7 +620,8 @@ OUTER APPLY (
         oo.specimen,
         oo.postOpDiagnosis,
         oo.operations,
-       
+          oo.reactivateEditing,
+        oo.reactivateRemarks,
         oo.active,
         oo.medications,
     
@@ -655,7 +736,8 @@ FROM (
         orbitOp.specimen,
         orbitOp.postOpDiagnosis,
         orbitOp.operations,
-      
+         orbitOp.reactivateEditing,
+        orbitOp.reactivateRemarks,
         orbitOp.medications,
        
         orbitOp.active,
@@ -811,7 +893,8 @@ const selectPatientsWIthOperativeRecordstesting = async function (
       orbitOp.operations,
     
       orbitOp.medications,
-     
+        orbitOp.reactivateEditing,
+        orbitOp.reactivateRemarks,
 
       orbitOp.createdBy
        
@@ -874,7 +957,8 @@ const selectPatientsWIthOperativeRecordstesting = async function (
       orbitOp.createdBy,
              px_info.AGE,
 
-           
+             orbitOp.reactivateEditing,
+        orbitOp.reactivateRemarks, 
       px_info.DBIRTH, px_info.SEX, px_info.ADDRESS,    px_info.PATIENTNO,
       phic_codes.PHIC_DESC,
        orbitOp.dateTimeUpdated,
@@ -1472,4 +1556,6 @@ module.exports = {
   // updateOperativeTechnique,
   selectedEncodedProcedureMaintenance,
   selectProcedureName,
+  selectMissingOpRecForm,
+  selectUnencodedDischargeCases,
 };

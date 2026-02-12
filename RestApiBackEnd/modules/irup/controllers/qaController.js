@@ -232,6 +232,8 @@ const QAActionInsertEmail = async (req, res) => {
 
       if (primaryDepartment) {
         const directorEmail = await model.getDirectorEmail(primaryDepartment);
+        const accessEmail = await model.getAccessEmail(primaryDepartment);
+
         if (directorEmail && directorEmail?.length > 0) {
           const { uERMEmail: DirectorEmail, fullname: DirectorName } =
             directorEmail[0];
@@ -306,6 +308,25 @@ const QAActionInsertEmail = async (req, res) => {
             );
           }
         }
+
+        if (accessEmail && accessEmail?.length > 0) {
+          const { uERMEmail, fullName } = accessEmail[0];
+
+          const { iRNo, subjectName, subjectSpecificExam, riskGrading } =
+            updatedActionResult[0];
+
+          const riskLabel =
+            riskLabels[riskGrading] || `UNKNOWN (${riskGrading})`;
+
+          await qaEmail.ActionAccess(
+            uERMEmail,
+            fullName,
+            iRNo,
+            subjectName,
+            subjectSpecificExam,
+            riskLabel,
+          );
+        }
       }
       return res.status(200).json({
         message: "QA Email data inserted and Action updated successfully",
@@ -323,6 +344,8 @@ const QAActionInsertEmail = async (req, res) => {
   }
 };
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 const FormInsertReject = async (req, res) => {
   try {
     const userCode = req.user.EmployeeCode;
@@ -335,10 +358,10 @@ const FormInsertReject = async (req, res) => {
           IsReject: "false",
           RejectNote: rejectNote,
           RejectedBy: userCode,
+          RejectedDateTime: new Date(),
         },
         { IRNo: iRNo },
         txn,
-        "RejectedDateTime",
       );
     });
     return res.status(200).json(updateRejectIR);
@@ -443,6 +466,7 @@ const QARCAInsertEmail = async (req, res) => {
 
       if (primaryDepartment) {
         const directorEmail = await model.getDirectorEmail(primaryDepartment);
+        const accessEmail = await model.getAccessEmail(primaryDepartment);
 
         if (directorEmail && directorEmail?.length > 0) {
           const { uERMEmail: DirectorEmail, fullname: DirectorName } =
@@ -514,7 +538,27 @@ const QARCAInsertEmail = async (req, res) => {
             );
           }
         }
+
+        if (accessEmail && accessEmail?.length > 0) {
+          const { uERMEmail, fullName } = accessEmail[0];
+
+          const { iRNo, subjectName, subjectSpecificExam, riskGrading } =
+            updatedRCAResult[0];
+
+          const riskLabel =
+            riskLabels[riskGrading] || `UNKNOWN (${riskGrading})`;
+
+          await qaEmail.RCAAccess(
+            uERMEmail,
+            fullName,
+            iRNo,
+            subjectName,
+            subjectSpecificExam,
+            riskLabel,
+          );
+        }
       }
+
       return res.status(200).json({
         message: "QA Email data inserted and Action updated successfully",
         updatedRCAResult,

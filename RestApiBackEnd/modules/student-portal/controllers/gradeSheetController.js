@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const util = require("../../../helpers/util");
 const sqlHelper = require("../../../helpers/sql");
 const date = require("date-and-time");
@@ -37,7 +38,7 @@ const addStudent = async function (req, res) {
             AND FirstName = '${req.body.firstName}' AND MiddleName = '${req.body.middleName}')`;
       const student = await grades.selectStudent(sqlWhere, txn);
 
-      if (student == 0 || student == "") {
+      if (student === 0 || student === "") {
         const studentNo = req.body.studentNo;
         const lastName = req.body.lastName;
         const firstName = req.body.firstName;
@@ -89,12 +90,14 @@ const addGrade = async function (req, res) {
       // sqlWhere2 = `SubjectCode = '${studentGrade.subjectCode}' AND SN = '${studentGrade.gradeSN}'`
       // const validateSubjectCode = await grades.subjectCodeExist(sqlWhere2, txn)
 
-      if (validateStudent == "" || validateStudent == 0) {
+      if (validateStudent === "" || validateStudent === 0) {
         res.status(401).json({ message: "No Student found" });
       }
       // else if(validateSubjectCode.length > 0 && studentGrade.subjectCode !== "RLE"){
       //   res.status(401).json({ message: "Subject code already exist" });
       // }
+
+
       else {
         const gradeSN = studentGrade.gradeSN;
         const semester = studentGrade.semester;
@@ -110,6 +113,8 @@ const addGrade = async function (req, res) {
         const hoursLec = studentGrade.hoursLec;
         const hoursLab = studentGrade.hoursLab;
         const rleHours = studentGrade.rleHours;
+        const courseId = studentGrade.courseId;
+
         let nonAcademic;
         if (studentGrade.nonAcademic) {
           nonAcademic = 1;
@@ -153,6 +158,7 @@ const addGrade = async function (req, res) {
           PreparedBy: req.user.code,
           DateTimePrepared: currentDate,
           isFailed: isFailed,
+          CourseId: courseId,
           CreatedBy: req.user.code,
         };
         // return await grades.insertGrade(addGrade, txn);
@@ -224,6 +230,8 @@ const addGrade = async function (req, res) {
   });
 
   return res.json(returnValue);
+  // console.log(req.body);
+  // return true;
 };
 
 const addNotes = async function (req, res) {
@@ -233,7 +241,7 @@ const addNotes = async function (req, res) {
       sqlWhere = `SN = '${req.body.notesSN}'`;
       const validateStudent = await grades.studentIfExist(sqlWhere, txn);
 
-      if (validateStudent == "" || validateStudent == 0) {
+      if (validateStudent === "" || validateStudent === 0) {
         return res.json({ message: "No Student found" });
       } else {
         const notesSN = req.body.notesSN;
@@ -313,6 +321,7 @@ const suggestedSubject = async function (req, res) {
       const removeSY = semester.replace("SY ", "");
       const sqlWhere = `SchoolYear LIKE '${removeSY}%' AND YearLevel LIKE '${yearLevel}' AND Active = 1`;
       const response = await grades.selectSuggestedSubject(sqlWhere, txn);
+
       const selectedSubjects = response;
 
       if (verify.length > 0) {
@@ -607,7 +616,7 @@ const editGradesData = async function (req, res) {
           {
             SN: gradesEdited.gradeSN,
             Semester: gradesEdited.semester,
-            SchoolYear: gradesEdited.term,
+            Term: gradesEdited.term,
             SubjectCode: gradesEdited.subjectCode,
             Subject: gradesEdited.subject,
             IsNonAcademic: nonAcademic,
@@ -828,40 +837,18 @@ const addCourses = async function (req, res) {
 
 const editCourse = async function (req, res) {
   const returnValue = await sqlHelper.transact(async (txn) => {
-    // console.log("PUTTTT", req.body);
-
     if (util.empty(req.body))
       return res.status(400).json({ error: "`data` is required." });
 
     try {
       const courseEdit = req.body;
-      const editCourse = await grades.editCourse(
-        {
-          SchoolYear: courseEdit.schoolYear,
-          YearLevel: courseEdit.yearLevel,
-          SubjectCode: courseEdit.subjectCode,
-          Description: courseEdit.description,
-          College: courseEdit.college,
-          Program: courseEdit.degreeProgram,
-          UpdatedBy: req.user.code,
-        },
-        { Id: courseEdit.editId }, //where clause
-        txn,
-      );
-      if (editCourse.length !== 0) {
-        return await grades.editManualGradeDetails(
-          {
-            Subject: courseEdit.description,
-            UpdatedBy: req.user.code,
-          },
-          {
-            Term: courseEdit.schoolYear,
-            SubjectCode: courseEdit.subjectCode,
-          }, //where clause
-          txn,
-        );
-      }
+
+      courseEdit.updatedBy = req.user.code;
+      const id = courseEdit.id;
+      delete courseEdit.id;
+      return await grades.editCourse(courseEdit, { id: id }, txn);
     } catch (error) {
+      console.log(error);
       return res.status(500).json({ error: error });
     }
   });

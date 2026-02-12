@@ -32,7 +32,13 @@ async function getDetails(condition) {
         END AS 'isHR',
         TRIM(E.DEPT_CODE) AS 'department_code',
         e.DEPT_DESC deptDescription,
-        e.POS_DESC posDescription
+        e.POS_DESC posDescription,
+        CASE
+          WHEN E.IS_ACTIVE = 1 
+            AND (E.RESIGNED IS NULL OR DATEDIFF(DAY, E.RESIGNED, GETDATE()) < -50)
+          THEN 1
+          ELSE 0
+        END AS policyRule
       FROM [UE database]..vw_Employees AS E
       INNER JOIN ITMgt..Users U ON U.CODE = E.CODE
       WHERE E.CODE = ?
@@ -102,6 +108,11 @@ async function generateAccessRights(employeeId) {
       app: "Employee Portal",
     },
     {
+      key: "employeeDtrDetails",
+      module: "Employee DTR",
+      app: "Employee Portal",
+    },
+    {
       key: "approverDetails",
       module: "Approver Details",
       app: "Employee Portal",
@@ -114,6 +125,11 @@ async function generateAccessRights(employeeId) {
     {
       key: "unpaidOvertime",
       module: "Unpaid Overtime Report",
+      app: "Employee Portal",
+    },
+    {
+      key: "dtrFinalization",
+      module: "DTR Finalization",
       app: "Employee Portal",
     },
   ];
@@ -141,6 +157,7 @@ async function getToken(userData) {
     position: userData.positionCode,
     posDescription: userData.posDescription,
     isOfficer: userData.officer,
+    policyRule: userData.policyRule,
     is_license: helperMethods.convertToBoolean(userData.is_license),
     access_rights: await generateAccessRights(userData.employee_id),
   };

@@ -233,8 +233,8 @@ const getDoctorXraysReadCount = async (req, res) => {
   const r = await db.query(
     `
       SELECT
-        MIN(Radiologist) radiologist,
-        COUNT(Id) patientCount
+        tb.Radiologist radiologist,
+        COUNT(tb.Id) patientCount
       FROM (
         SELECT
           ve.Id,
@@ -252,14 +252,51 @@ const getDoctorXraysReadCount = async (req, res) => {
           ${req.query.campusCode ? " AND ".concat("p.CampusCode = ?") : ""}
       ) tb
       GROUP BY
-        Radiologist
+        tb.Radiologist
       ORDER BY
-        Radiologist;
+        tb.Radiologist;
     `,
     [req.query.year, ...(req.query.campusCode ? [req.query.campusCode] : [])],
     null,
     false,
   );
+
+  // V2
+  // const r = await db.query(
+  //   `
+  //     SELECT
+  //       UPPER(CONCAT(u.LastName, ', ', u.FirstName)) radiologist,
+  //       COUNT(VisitExamDetailId) patientCount
+  //     FROM
+  //       (
+  //         SELECT
+  //           ved.CreatedBy RadiologistCode,
+  //           MIN(v.Id) VisitId,
+  //           MIN(ved.Id) VisitExamDetailId
+  //         FROM
+  //           AnnualPhysicalExam..VisitExamDetails ved
+  //           JOIN AnnualPhysicalExam..VisitExams ve ON ve.Id = ved.VisitExamId
+  //           JOIN AnnualPhysicalExam..Visits v ON v.Id = ve.VisitId
+  //           JOIN AnnualPhysicalExam..Patients p ON p.Id = v.PatientId
+  //         WHERE
+  //           ve.ExamCode = 'RAD_XR_CHST'
+  //           AND ISNULL(p.WithdrawnOrResigned, 0) = 0
+  //           AND p.[Year] = ?
+  //           ${req.query.campusCode ? " AND ".concat("p.CampusCode = ?") : ""}
+  //         GROUP BY
+  //           ved.CreatedBy,
+  //           v.Id
+  //       ) tb
+  //       JOIN AnnualPhysicalExam..Users u ON u.Code = tb.RadiologistCode
+  //     GROUP BY
+  //       UPPER(CONCAT(u.LastName, ', ', u.FirstName))
+  //     ORDER BY
+  //       radiologist;
+  //   `,
+  //   [req.query.year, ...(req.query.campusCode ? [req.query.campusCode] : [])],
+  //   null,
+  //   false,
+  // );
 
   if (r?.error) {
     res.status(500).json(null);

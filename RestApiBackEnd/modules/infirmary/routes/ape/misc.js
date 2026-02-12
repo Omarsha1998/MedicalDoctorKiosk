@@ -8,6 +8,13 @@ const {
 const miscController = require("../../controllers/ape/misc.js");
 
 router.get(
+  "/user-roles",
+  validateAccessToken,
+  checkWhiteList,
+  miscController.getUserRoles,
+);
+
+router.get(
   "/departments",
   validateAccessToken,
   checkWhiteList,

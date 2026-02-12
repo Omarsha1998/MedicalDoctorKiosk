@@ -28,17 +28,25 @@ const getDTRDetails = async (
   //     return { status: 500, message: 'Failed to retrieve DTR Details' };
   // }
 
-  return await sqlHelper.query(
-    `EXEC HR.dbo.Usp_jf_DTRv2 
-      '${startDate}',
-      '${endDate}',
-      '${employeeCode}',
-      '${departmentCode}',
-      '${displayType}',
-      '${classType}'
-      `,
-    [],
-  );
+  // return await sqlHelper.query(
+  //   `EXEC HR.dbo.Usp_jf_DTRv2
+  //     '${startDate}',
+  //     '${endDate}',
+  //     '${employeeCode}',
+  //     '${departmentCode}',
+  //     '${displayType}',
+  //     '${classType}'
+  //     `,
+  //   [],
+  // );
+  return await sqlHelper.query(`EXEC HR.dbo.Usp_jf_DTRv2 ?, ?, ?, ?, ?, ?`, [
+    startDate,
+    endDate,
+    employeeCode,
+    departmentCode,
+    displayType,
+    classType,
+  ]);
 };
 
 const noDtrEmployee = async (employeeId) => {
@@ -95,7 +103,7 @@ const employeeClass = async () => {
 
 const getEmployees = async (payrollPeriod, employeeClass) => {
   return await sqlHelper.query(
-    `select 
+    `select
       e.code,
       e.name,
       e.DEPT_DESC department,
@@ -118,6 +126,38 @@ const getEmployees = async (payrollPeriod, employeeClass) => {
     [payrollPeriod, employeeClass],
   );
 };
+
+// const getEmployees = async (payrollPeriod, employeeClass) => {
+//   console.log(payrollPeriod, employeeClass);
+//   return await sqlHelper.query(
+//     `
+//     SELECT
+//       e.EmployeeCode code,
+//       CONCAT(
+//         e.LastName, ', ',
+//         e.FirstName,
+//         ISNULL(' ' + e.MiddleInitial + '.', '')
+//       ) AS name,
+//       e.DeptCode department,
+//       e.PositionCode position,
+//       e.Class class
+//     FROM [UE database]..Employee e
+//     LEFT JOIN UERMATT..timeDataPosting t
+//       ON e.EmployeeCode = t.code
+//       AND t.cancelled = 0
+//       AND CONVERT(varchar(6), t.dateTo, 112) + t.weekCode = ?
+//     LEFT JOIN UERMATT..NoDtr d
+//       ON e.EmployeeCode = d.code
+//       AND d.deleted = 0
+//     WHERE e.Class LIKE ?
+//       AND t.code IS NULL
+//       AND d.code IS NULL
+//       AND e.Isactive = 1
+//     ORDER BY department, name
+//     `,
+//     [payrollPeriod, employeeClass],
+//   );
+// };
 
 const employeeOvertime = async (employeeCode, payrollPeriod) => {
   return await sqlHelper.query(
@@ -214,17 +254,26 @@ const getComputedLate = async (
   displayType,
   classType,
 ) => {
-  return await sqlHelper.query(
-    `EXEC HR.dbo.Usp_jf_DTRv2 
-      '${startDate}',
-      '${endDate}',
-      '${employeeCode}',
-      '${departmentCode}',
-      '${displayType}',
-      '${classType}'
-      `,
-    [],
-  );
+  // return await sqlHelper.query(
+  //   `EXEC HR.dbo.Usp_jf_DTRv2
+  //     '${startDate}',
+  //     '${endDate}',
+  //     '${employeeCode}',
+  //     '${departmentCode}',
+  //     '${displayType}',
+  //     '${classType}'
+  //     `,
+  //   [],
+  // );
+
+  return await sqlHelper.query(`EXEC HR.dbo.Usp_jf_DTRv2 ?, ?, ?, ?, ?, ?`, [
+    startDate,
+    endDate,
+    employeeCode,
+    departmentCode,
+    displayType,
+    classType,
+  ]);
 };
 
 // const getSummaryReport = async (payrollPeriod) => {
@@ -646,6 +695,19 @@ const insertTimeManualLog = async (item, txn, creationDateTimeField) => {
   );
 };
 
+const getEmployeeDepartment = async (employeeCode) => {
+  return await sqlHelper.query(
+    `SELECT 
+      DeptCode
+    FROM 
+      [UE database]..Employee
+    WHERE
+      EmployeeCode = ?
+    `,
+    [employeeCode],
+  );
+};
+
 module.exports = {
   getDTRDetails,
   noDtrEmployee,
@@ -663,4 +725,5 @@ module.exports = {
   updateTimeData,
   insertTimeData,
   insertTimeManualLog,
+  getEmployeeDepartment,
 };

@@ -5,7 +5,6 @@ const fs = require("fs-extra");
 const path = require("path");
 const bcrypt = require("bcrypt");
 const tools = require("../../../helpers/tools.js");
-const { console } = require("inspector");
 
 const convertImageToBase64 = async (image) => {
   const imageData = await fs.readFile(image);
@@ -104,8 +103,92 @@ const getWellness = async (req, res) => {
 //   res.status(200).json(result);
 // };
 
+const checkDoctorTimeOutDaily = async () => {
+  await sqlHelper.transact(async (txn) => {
+    const doctors = await doctorsModel.checkDoctorTimeOutDaily();
+
+    for (const item of doctors) {
+      const d = new Date(item.dateTimeIn).toLocaleString("en-PH", {
+        timeZone: "Asia/Manila",
+      });
+      const currentDateTime = new Date().toLocaleString("en-PH", {
+        timeZone: "Asia/Manila",
+      });
+
+      if (currentDateTime > d) {
+        // await doctorsModel.updateDoctorAttendance(item.id, txn);
+        await doctorsModel.updateDoctorAttendance(
+          {
+            UpdatedBy: "System",
+            DateTimeOut: d,
+          },
+          { Id: item.id },
+          txn,
+          "DateTimeUpdated",
+        );
+      }
+    }
+  });
+};
+
+const checkDoctorTimeOut = async () => {
+  await sqlHelper.transact(async (txn) => {
+    const doctors = await doctorsModel.checkDoctorTimeOutDaily();
+
+    for (const item of doctors) {
+      if (item.doctorCode !== "DR01285") {
+        continue;
+      }
+
+      const schedule = await doctorsModel.doctorSchedule(item.doctorCode);
+
+      const now = new Date();
+      const manilaTime = new Date(
+        now.toLocaleString("en-US", {
+          timeZone: "Asia/Manila",
+        }),
+      );
+
+      const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+      const currentDay = daysOfWeek[manilaTime.getDay()];
+
+      const currentHours = manilaTime.getHours();
+      const currentMinutes = manilaTime.getMinutes();
+      const currentTimeInMinutes = currentHours * 60 + currentMinutes;
+
+      // Find today's schedule
+      const todaySchedule = schedule.find(
+        (s) => s.day === currentDay && s.active,
+      );
+
+      if (todaySchedule) {
+        // Extract time from timeTo (stored as Date with 1970-01-01)
+        const timeToDate = new Date(todaySchedule.timeTo);
+        const scheduleHours = timeToDate.getUTCHours() + 8; // Add UTC+8 offset
+        const scheduleMinutes = timeToDate.getUTCMinutes();
+        const scheduleTimeInMinutes = scheduleHours * 60 + scheduleMinutes;
+
+        // If current time is greater than schedule end time
+        if (currentTimeInMinutes > scheduleTimeInMinutes) {
+          await doctorsModel.updateDoctorAttendance(
+            {
+              UpdatedBy: "System",
+              DateTimeOut: now,
+            },
+            { Id: item.id },
+            txn,
+            "DateTimeUpdated",
+          );
+        }
+      }
+    }
+  });
+};
+
 const getDoctors = async (req, res) => {
   const { departmentName = "", doctorName = "", hmo = "" } = req.body || {};
+
+  await checkDoctorTimeOut();
 
   const result = await sqlHelper.transact(async (txn) => {
     const doctors = await doctorsModel.getDoctors({
@@ -117,9 +200,20 @@ const getDoctors = async (req, res) => {
       txn,
     });
 
+    const now = new Date();
+
     for (const item of doctors) {
       if (item.isOnDuty === 0 && item.dateTimeIn && !item.dateTimeOut) {
         await doctorsModel.updateDoctorAttendance(item.id, txn);
+        await doctorsModel.updateDoctorAttendance(
+          {
+            UpdatedBy: "System",
+            DateTimeOut: now,
+          },
+          { Id: item.id },
+          txn,
+          "DateTimeUpdated",
+        );
       }
 
       // if (item.picture) {
@@ -376,6 +470,8 @@ const getSecretaryDoctors = async (req, res) => {
       return res.status(400).json({ error: "Missing secretaryCode" });
     }
 
+    await checkDoctorTimeOut();
+
     const result = await sqlHelper.transact(async (txn) => {
       const doctors = await doctorsModel.getDoctors({
         departmentCode: "",
@@ -591,6 +687,268 @@ const generatePassword = async () => {
   return { hashedPassword, plainPassword };
 };
 
+// const addDoctorAssignment = async (req, res) => {
+//   const {
+//     doctorCodes,
+//     secretaryName,
+//     secretaryCode,
+//     secretaryNickname,
+//     secretaryContactNumber,
+//     addNew,
+//   } = req.body;
+//   const { employeeId: loggedInSecretaryCode } = req.user;
+
+//   const responses = [];
+
+//   if (addNew === true) {
+//     const checkSecretaryData = await doctorsModel.checkSecretaryData(
+//       secretaryCode,
+//       secretaryName,
+//     );
+
+//     if (checkSecretaryData.length > 0) {
+//       return res.status(409).json({
+//         body: "The Secretary code/name has already data kindly check the list of secretary.",
+//       });
+//     }
+
+//     const { hashedPassword, plainPassword } = await generatePassword();
+
+//     const insertNewSecretary = await sqlHelper.transact(async (txn) => {
+//       return await doctorsModel.insertNewSecretary(
+//         {
+//           Code: secretaryCode,
+//           Name: secretaryName,
+//           ContactNumber: secretaryContactNumber,
+//           NickName: secretaryNickname,
+//           Password: hashedPassword,
+//           IsActive: 1,
+//         },
+//         txn,
+//         "DateCreated",
+//       );
+//     });
+
+//     if (!insertNewSecretary || insertNewSecretary.length === 0) {
+//       return res.status(500).json({
+//         message: "Failed to insert new secretary.",
+//       });
+//     }
+
+//     await sendSmsSecretaryDetails(
+//       secretaryCode,
+//       secretaryName,
+//       secretaryContactNumber,
+//       plainPassword,
+//     );
+//   }
+
+//   for (const doctorCode of doctorCodes) {
+//     const result = await sqlHelper.transact(async (txn) => {
+//       const checkLogs = await doctorsModel.checkLogDoctorAssignment(
+//         doctorCode.doctorEhrCode,
+//         secretaryCode,
+//         txn,
+//       );
+
+//       if (checkLogs.length > 0) {
+//         if (checkLogs[0].isDeleted === true || checkLogs[0].isDeleted === 1) {
+//           const updateDoctorAssignment =
+//             await doctorsModel.updateDoctorAssignment(
+//               { IsDeleted: 0 },
+//               { Id: checkLogs[0].id },
+//               txn,
+//               "DateTimeUpdated",
+//             );
+
+//           if (!updateDoctorAssignment) {
+//             throw new Error("Failed to update doctor assignment");
+//           }
+
+//           return `Updated doctor ${doctorCode.doctorEhrCode}`;
+//         }
+
+//         return `Doctor ${doctorCode.doctorEhrCode} already assigned`;
+//       }
+
+//       const insertDoctorAssignment = await doctorsModel.insertDoctorAssignment(
+//         {
+//           DoctorCode: doctorCode.doctorEhrCode,
+//           SecretaryCode: secretaryCode,
+//           CreatedBy: loggedInSecretaryCode,
+//         },
+//         txn,
+//         "DateTimeCreated",
+//       );
+
+//       if (!insertDoctorAssignment) {
+//         throw new Error("Failed to add doctor assignment");
+//       }
+
+//       return `Added doctor ${doctorCode.doctorEhrCode}`;
+//     });
+
+//     if (!result) {
+//       return res
+//         .status(500)
+//         .json({ message: "Failed to process doctor assignment" });
+//     }
+
+//     responses.push(result);
+//   }
+
+//   return res.status(200).json({
+//     message: "Adding doctor assignemnt successfull",
+//     results: responses,
+//   });
+// };
+
+// const addDoctorAssignment = async (req, res) => {
+// const {
+//   doctorCodes,
+//   secretaryName,
+//   secretaryCode,
+//   secretaryNickname,
+//   secretaryContactNumber,
+//   addNew,
+// } = req.body;
+// const { employeeId: loggedInSecretaryCode } = req.user;
+
+// console.log("HERER");
+
+// const responses = [];
+// let newSecretaryData = null;
+
+// if (addNew === true) {
+//   const checkSecretaryData = await doctorsModel.checkSecretaryData(
+//     secretaryCode,
+//     secretaryName,
+//   );
+
+//   if (checkSecretaryData.length > 0) {
+//     return res.status(409).json({
+//       body: "The Secretary code/name has already data kindly check the list of secretary.",
+//     });
+//   }
+
+//   const { hashedPassword, plainPassword } = await generatePassword();
+
+//   console.log("=== PASSWORD GENERATION ===");
+//   console.log("Plain Password:", plainPassword);
+//   console.log("Hashed Password:", hashedPassword);
+
+//   const insertNewSecretary = await sqlHelper.transact(async (txn) => {
+//     return await doctorsModel.insertNewSecretary(
+//       {
+//         Code: secretaryCode,
+//         Name: secretaryName,
+//         ContactNumber: secretaryContactNumber,
+//         NickName: secretaryNickname,
+//         Password: hashedPassword,
+//         IsActive: 1,
+//       },
+//       txn,
+//       "DateCreated",
+//     );
+//   });
+
+//   if (!insertNewSecretary || insertNewSecretary.length === 0) {
+//     return res.status(500).json({
+//       message: "Failed to insert new secretary.",
+//     });
+//   }
+
+//   console.log("=== NEW SECRETARY INSERTED ===");
+//   console.log("Insert Result:", insertNewSecretary);
+
+//   // COMMENTED OUT FOR TESTING - Uncomment when ready to send SMS
+//   // await sendSmsSecretaryDetails(
+//   //   secretaryCode,
+//   //   secretaryName,
+//   //   secretaryContactNumber,
+//   //   plainPassword,
+//   // );
+
+//   // Store the new secretary data to send back
+//   newSecretaryData = {
+//     secretaryName,
+//     secretaryCode,
+//     plainPassword,
+//   };
+
+//   console.log("=== NEW SECRETARY DATA TO RETURN ===");
+//   console.log(newSecretaryData);
+// }
+
+// for (const doctorCode of doctorCodes) {
+//   const result = await sqlHelper.transact(async (txn) => {
+//     const checkLogs = await doctorsModel.checkLogDoctorAssignment(
+//       doctorCode.doctorEhrCode,
+//       secretaryCode,
+//       txn,
+//     );
+
+//     if (checkLogs.length > 0) {
+//       if (checkLogs[0].isDeleted === true || checkLogs[0].isDeleted === 1) {
+//         const updateDoctorAssignment =
+//           await doctorsModel.updateDoctorAssignment(
+//             { IsDeleted: 0 },
+//             { Id: checkLogs[0].id },
+//             txn,
+//             "DateTimeUpdated",
+//           );
+
+//         if (!updateDoctorAssignment) {
+//           throw new Error("Failed to update doctor assignment");
+//         }
+
+//         return `Updated doctor ${doctorCode.doctorEhrCode}`;
+//       }
+
+//       return `Doctor ${doctorCode.doctorEhrCode} already assigned`;
+//     }
+
+//     const insertDoctorAssignment = await doctorsModel.insertDoctorAssignment(
+//       {
+//         DoctorCode: doctorCode.doctorEhrCode,
+//         SecretaryCode: secretaryCode,
+//         CreatedBy: loggedInSecretaryCode,
+//       },
+//       txn,
+//       "DateTimeCreated",
+//     );
+
+//     if (!insertDoctorAssignment) {
+//       throw new Error("Failed to add doctor assignment");
+//     }
+
+//     return `Added doctor ${doctorCode.doctorEhrCode}`;
+//   });
+
+//   if (!result) {
+//     return res
+//       .status(500)
+//       .json({ message: "Failed to process doctor assignment" });
+//   }
+
+//   responses.push(result);
+// }
+
+// const responseData = {
+//   message: "Adding doctor assignment successful",
+//   results: responses,
+// };
+
+// if (newSecretaryData) {
+//   responseData.newSecretary = newSecretaryData;
+// }
+
+// console.log("=== FINAL RESPONSE DATA ===");
+// console.log(JSON.stringify(responseData, null, 2));
+
+// return res.status(200).json(responseData);
+// };
+
 const addDoctorAssignment = async (req, res) => {
   const {
     doctorCodes,
@@ -603,6 +961,7 @@ const addDoctorAssignment = async (req, res) => {
   const { employeeId: loggedInSecretaryCode } = req.user;
 
   const responses = [];
+  let newSecretaryData = null;
 
   if (addNew === true) {
     const checkSecretaryData = await doctorsModel.checkSecretaryData(
@@ -633,18 +992,46 @@ const addDoctorAssignment = async (req, res) => {
       );
     });
 
-    if (!insertNewSecretary || insertNewSecretary.length === 0) {
+    if (
+      !insertNewSecretary ||
+      insertNewSecretary.error ||
+      insertNewSecretary.affectedRows === 0
+    ) {
       return res.status(500).json({
         message: "Failed to insert new secretary.",
       });
     }
 
-    await sendSmsSecretaryDetails(
-      secretaryCode,
+    try {
+      await sendSmsSecretaryDetails(
+        secretaryCode,
+        secretaryName,
+        secretaryContactNumber,
+        plainPassword,
+      );
+    } catch (smsError) {
+      console.error("SMS sending failed:", smsError);
+    }
+
+    // COMMENTED OUT FOR TESTING
+    // await sendSmsSecretaryDetails(
+    //   secretaryCode,
+    //   secretaryName,
+    //   secretaryContactNumber,
+    //   plainPassword,
+    // );
+
+    newSecretaryData = {
       secretaryName,
-      secretaryContactNumber,
+      secretaryCode,
       plainPassword,
-    );
+    };
+
+    responses.push({
+      type: "secretary",
+      message: `New secretary created: ${secretaryName} (${secretaryCode})`,
+      data: newSecretaryData,
+    });
   }
 
   for (const doctorCode of doctorCodes) {
@@ -669,10 +1056,16 @@ const addDoctorAssignment = async (req, res) => {
             throw new Error("Failed to update doctor assignment");
           }
 
-          return `Updated doctor ${doctorCode.doctorEhrCode}`;
+          return {
+            type: "doctor",
+            message: `Updated doctor ${doctorCode.doctorEhrCode}`,
+          };
         }
 
-        return `Doctor ${doctorCode.doctorEhrCode} already assigned`;
+        return {
+          type: "doctor",
+          message: `Doctor ${doctorCode.doctorEhrCode} already assigned`,
+        };
       }
 
       const insertDoctorAssignment = await doctorsModel.insertDoctorAssignment(
@@ -689,7 +1082,10 @@ const addDoctorAssignment = async (req, res) => {
         throw new Error("Failed to add doctor assignment");
       }
 
-      return `Added doctor ${doctorCode.doctorEhrCode}`;
+      return {
+        type: "doctor",
+        message: `Added doctor ${doctorCode.doctorEhrCode}`,
+      };
     });
 
     if (!result) {
@@ -701,74 +1097,29 @@ const addDoctorAssignment = async (req, res) => {
     responses.push(result);
   }
 
-  // for (const doctorCode of doctorCodes) {
-  //   const checkLogs = await doctorsModel.checkLogDoctorAssignment(
-  //     doctorCode.doctorEhrCode,
-  //     secretaryCode,
-  //     txn
-  //   );
-
-  //   if (checkLogs.length > 0) {
-  //     if (checkLogs[0].isDeleted === true) {
-  //       const updateDoctorAssignment = await sqlHelper.transact(async (txn) => {
-  //         return await doctorsModel.updateDoctorAssignment(
-  //           { IsDeleted: 0 },
-  //           { Id: checkLogs[0].id },
-  //           txn,
-  //           "DateTimeUpdated",
-  //         );
-  //       });
-
-  //       if (!updateDoctorAssignment) {
-  //         return res
-  //           .status(500)
-  //           .json({ message: "Failed to update doctor assignment" });
-  //       }
-
-  //       responses.push(`Updated doctor ${doctorCode.doctorEhrCode}`);
-  //       continue;
-  //     }
-
-  //     responses.push(`Doctor ${doctorCode.doctorEhrCode} already assigned`);
-  //     continue;
-  //   }
-
-  //   const insertDoctorAssignment = await sqlHelper.transact(async (txn) => {
-  //     return await doctorsModel.insertDoctorAssignment(
-  //       {
-  //         DoctorCode: doctorCode.doctorEhrCode,
-  //         SecretaryCode: secretaryCode,
-  //         CreatedBy: loggedInSecretaryCode,
-  //       },
-  //       txn,
-  //       "DateTimeCreated",
-  //     );
-  //   });
-
-  //   if (!insertDoctorAssignment) {
-  //     return res
-  //       .status(500)
-  //       .json({ message: "Failed to add doctor assignment" });
-  //   }
-
-  //   responses.push(`Added doctor ${doctorCode.doctorEhrCode}`);
-  // }
-
   return res.status(200).json({
-    message: "Adding doctor assignemnt successfull",
+    message: "Adding doctor assignment successful",
     results: responses,
   });
 };
 
 const resetSecretaryPassword = async (req, res) => {
-  const { secretaryCode } = req.body;
+  const { secretaryCode, secretaryName, contactNumber } = req.body;
+  const { employeeId: updatedBy } = req.user;
 
-  const allSecretary = await doctorsModel.getAllSecretary();
-  const existing = allSecretary.find((sec) => sec.Code === secretaryCode);
+  if (!secretaryCode || !contactNumber) {
+    return res
+      .status(400)
+      .json({ message: "Secretary code and contact number are required." });
+  }
+
+  const existing = await doctorsModel.getAllSecretary(secretaryCode);
 
   if (!existing || existing.length === 0) {
     return res.status(404).json({ message: "Secretary not found." });
   }
+
+  const secretary = existing[0];
 
   const { hashedPassword, plainPassword } = await generatePassword();
 
@@ -776,44 +1127,69 @@ const resetSecretaryPassword = async (req, res) => {
     return await doctorsModel.updateSecretaryPassword(
       {
         Password: hashedPassword,
+        ContactNumber: contactNumber,
+        UpdatedBy: updatedBy,
       },
       { Code: secretaryCode },
       txn,
-      "DateTimeUpdated",
+      "DateUpdated",
     );
   });
+
+  if (!updated || updated.error || updated.affectedRows === 0) {
+    return res.status(500).json({
+      message: "Failed to reset password.",
+      error: updated?.error || "Database update failed",
+    });
+  }
 
   if (!updated) {
     return res.status(500).json({ message: "Failed to reset password." });
   }
 
-  await sendSmsSecretaryDetails(
-    secretaryCode,
-    existing[0].name,
-    existing[0].contactNumber,
-    plainPassword,
-  );
+  try {
+    await sendSmsSecretaryDetails(
+      secretaryCode,
+      secretary.SecretaryName,
+      contactNumber,
+      plainPassword,
+    );
+  } catch (smsError) {
+    console.error("SMS sending failed:", smsError);
+  }
 
-  return res.status(200).json({ message: "Password reset successfully." });
+  const newSecretaryData = {
+    secretaryName,
+    secretaryCode,
+    contactNumber,
+    plainPassword,
+  };
+
+  return res.status(200).json({
+    message: "Adding doctor assignment successful",
+    results: newSecretaryData,
+  });
 };
 
-const checkDoctorTimeOutDaily = async () => {
-  await sqlHelper.transact(async (txn) => {
-    const doctors = await doctorsModel.checkDoctorTimeOutDaily();
+const removeSecretary = async (req, res) => {
+  const { secretaryCode, secretaryName } = req.body;
+  const { employeeId: updatedBy } = req.user;
 
-    for (const item of doctors) {
-      const d = new Date(item.dateTimeIn).toLocaleString("en-PH", {
-        timeZone: "Asia/Manila",
-      });
-      const currentDateTime = new Date().toLocaleString("en-PH", {
-        timeZone: "Asia/Manila",
-      });
-
-      if (currentDateTime > d) {
-        await doctorsModel.updateDoctorAttendance(item.id, txn);
-      }
-    }
+  const update = await sqlHelper.transact(async (txn) => {
+    return await doctorsModel.updateSecretary(
+      {
+        IsActive: 0,
+        UpdatedBy: updatedBy,
+      },
+      { Code: secretaryCode, Name: secretaryName },
+      txn,
+      "DateUpdated",
+    );
   });
+
+  if (!update) res.status(500).json(null);
+
+  res.status(200).json({ body: "Success removing secretary" });
 };
 
 // const getFilePicture = async (req, res) => {
@@ -1762,4 +2138,5 @@ module.exports = {
   consultationOption,
   deptSpecOption,
   doctorSecretaries,
+  removeSecretary,
 };
